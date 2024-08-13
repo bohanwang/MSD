@@ -1,7 +1,7 @@
 #include "cylinderCorefinement.h"
 #include "corefinementUtilities.h"
 
-#include "logger.h"
+#include "pgoLogging.h"
 #include "libiglInterface.h"
 
 #include "basicAlgorithms.h"
@@ -79,12 +79,12 @@ V3 computeCylinderCoordinate(const K::Point_3 &pt, const std::tuple<K::Point_3, 
   return V3(angle, diff1[maxIDX] / diff0[maxIDX], r);
 };
 
-void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, const Poly &targetMeshPoly, const FaceGraphTree &targetMeshBVTreeExact,
+void cylinderVertexProjection(Poly &finalMesh, const pgo::Mesh::TriMeshGeo &targetMesh, const Poly &targetMeshPoly, const FaceGraphTree &targetMeshBVTreeExact,
   const K::Point_3 primitiveCenter[2], double maxAllowedDist,
   const std::unordered_map<int, int> &vtxIDNew2Old, const std::map<int, std::array<int, 2>> &vertexIsOnTargetMesh,
   const std::vector<std::pair<int, int>> &selectedEdges)
 {
-  TriMeshNeighbor targetMeshNeighbor(targetMesh);
+  pgo::Mesh::TriMeshNeighbor targetMeshNeighbor(targetMesh);
 
 #if 1
   for (auto it = finalMesh.vertices_begin(); it != finalMesh.vertices_end(); ++it) {
@@ -197,7 +197,7 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
             const auto &triIDs = targetMeshNeighbor.getVtxNearbyTriangles(vids[ci]);
             for (int tri : triIDs) {
               // if the selected edge is shared by the triangle
-              const Vec3i &triVtxIDs = targetMesh.tri(tri);
+              const ES::V3i &triVtxIDs = targetMesh.tri(tri);
               if ((vids[0] == triVtxIDs[0] || vids[0] == triVtxIDs[1] || vids[0] == triVtxIDs[2]) &&
                 (vids[1] == triVtxIDs[0] || vids[1] == triVtxIDs[1] || vids[1] == triVtxIDs[2])) {
                 K::Plane_3 triPlane(toP3_EK(targetMesh.pos(tri, 0)), toP3_EK(targetMesh.pos(tri, 1)), toP3_EK(targetMesh.pos(tri, 2)));
@@ -234,8 +234,8 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
       }
     }
 
-    // Vec3d zz(-0.181634, 0.151783, 0.00689945);
-    // Vec3d zz1 = toVec3(it->point());
+    // pgo::asVec3d zz(-0.181634, 0.151783, 0.00689945);
+    // pgo::asVec3d zz1 = toVec3(it->point());
     // if (std::sqrt(dot(zz1 - zz, zz1 - zz)) < 1e-4) {
     //   std::cout << "catched" << std::endl;
     //   std::cout << it->id() << std::endl;
@@ -250,7 +250,7 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
   std::vector<int> isFixed(finalMesh.size_of_vertices(), 1);
   std::vector<K::Point_3> pts(finalMesh.size_of_vertices());
 
-  TriMeshGeo rays;
+  pgo::Mesh::TriMeshGeo rays;
 
   for (auto it = finalMesh.vertices_begin(); it != finalMesh.vertices_end(); ++it) {
     const K::Point_3 &pEK = it->point();
@@ -367,7 +367,7 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
             const auto &triIDs = targetMeshNeighbor.getVtxNearbyTriangles(vids[ci]);
             for (int tri : triIDs) {
               // if the selected edge is shared by the triangle
-              const Vec3i &triVtxIDs = targetMesh.tri(tri);
+              const ES::V3i &triVtxIDs = targetMesh.tri(tri);
               if ((vids[0] == triVtxIDs[0] || vids[0] == triVtxIDs[1] || vids[0] == triVtxIDs[2]) &&
                 (vids[1] == triVtxIDs[0] || vids[1] == triVtxIDs[1] || vids[1] == triVtxIDs[2])) {
                 K::Plane_3 triPlane(toP3_EK(targetMesh.pos(tri, 0)), toP3_EK(targetMesh.pos(tri, 1)), toP3_EK(targetMesh.pos(tri, 2)));
@@ -398,7 +398,7 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
     }
 
     K::Point_3 tgtp = projPtEK + dir * (dirMaxLength[it->id()] / len);
-    rays.addMesh(createSingleTriangleMesh(toVec3(tgtp), toVec3(projPtEK), toVec3(projPtEK) + Vec3d(1e-6)));
+    rays.addMesh(pgo::Mesh::.createSingleTriangleMesh(toVec3(tgtp), toVec3(projPtEK), toVec3(projPtEK) + pgo::asVec3d(1e-6)));
   }
   rays.save("rr.obj");
 
@@ -434,7 +434,7 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
   ES::VXd xhi(finalMesh.size_of_vertices());
   ES::VXd x(finalMesh.size_of_vertices());
 
-  TriMeshGeo mama;
+  pgo::Mesh::TriMeshGeo mama;
   for (int i = 0; i < (int)dirInputLength.size(); i++) {
     double lo, hi;
 
@@ -488,7 +488,7 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
       auto vit = vertexIsOnTargetMesh.find(oldVID);
       if (vit != vertexIsOnTargetMesh.end()) {
         if (vit->second[0] == 0) {
-          Vec3d p0 = targetMesh.pos(vit->second[1]);
+          pgo::asVec3d p0 = targetMesh.pos(vit->second[1]);
           it->point() = K::Point_3(p0[0], p0[1], p0[2]);
         }
         else if (vit->second[0] == 1) {
@@ -535,10 +535,10 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
           // std::cout << "t: " << tod(t) << std::endl;
 
           // if (dist > 1e-5) {
-          //   Vec3d x0 = toVec3(cpt);
-          //   Vec3d x1 = toVec3(it->point());
-          //   Vec3d x2 = toVec3(p);
-          //   mama.addMesh(createSingleTriangleMesh(x0, x1, x2));
+          //   pgo::asVec3d x0 = toVec3(cpt);
+          //   pgo::asVec3d x1 = toVec3(it->point());
+          //   pgo::asVec3d x2 = toVec3(p);
+          //   mama.addMesh(pgo::Mesh::.createSingleTriangleMesh(x0, x1, x2));
           //   // std::cin.get();
           // }
 
@@ -555,9 +555,9 @@ void cylinderVertexProjection(Poly &finalMesh, const TriMeshGeo &targetMesh, con
 }
 }  // namespace MedialAxisRepresentation
 
-int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &cylinderMesh, const Vec3d centers[2],
-  const TriMeshGeo &targetMesh, const TriMeshBVTree &targetMeshBVTree, const TriMeshPseudoNormal &targetMeshNormals,
-  double maxConfidentDist, double maxAllowedRadiusDist, TriMeshGeo &meshOut, const char *filename)
+int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const pgo::Mesh::TriMeshGeo &cylinderMesh, const ES::V3d centers[2],
+  const pgo::Mesh::TriMeshGeo &targetMesh, const pgo::Mesh::TriMeshBVTree &targetMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &targetMeshNormals,
+  double maxConfidentDist, double maxAllowedRadiusDist, pgo::Mesh::TriMeshGeo &meshOut, const char *filename)
 {
   // double maxConfidentDist = 1e-3;
   // double maxAllowedRadiusDist = 0.1;
@@ -571,10 +571,10 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
 
   HClockPt t1 = HClock::now();
 
-  TriMeshBVTree cylinderMeshBVTree;
+  pgo::Mesh::TriMeshBVTree cylinderMeshBVTree;
   cylinderMeshBVTree.buildByInertiaPartition(cylinderMesh);
 
-  TriMeshPseudoNormal cylinderMeshNormal;
+  pgo::Mesh::TriMeshPseudoNormal cylinderMeshNormal;
   cylinderMeshNormal.buildPseudoNormals(cylinderMesh);
 
   // compute the selected vertices for the target mesh to project
@@ -583,7 +583,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     // project target vertex to the skeleton
     // if the projection is successful, then keep going
     // otherwise, it is done
-    Vec3d p = targetMesh.pos(vi);
+    ES::V3d p = targetMesh.pos(vi);
     auto projPt = computeProjectionPt(toP3_EK(p), primitiveCenterEK);
     if (std::get<1>(projPt) != 2) {
       targetMeshChoosenVertex[vi] = 0;
@@ -603,18 +603,18 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     }
 
     // in contact with the sphere
-    Vec3d dir = norm(ret.closestPosition - p);
-    Vec3d n = cylinderMeshNormal.getPseudoNormal(cylinderMesh.triangles().data(), ret.triID, ret.feature);
-    if (dot(dir, n) >= 0) {
+    ES::V3d dir = (ret.closestPosition - p).normalized();
+    ES::V3d n = cylinderMeshNormal.getPseudoNormal(cylinderMesh.triangles().data(), ret.triID, ret.feature);
+    if (dir.dot(n) >= 0) {
       targetMeshChoosenVertex[vi] = 1;
     }
 
     // compute segment from skeleton to the target position
-    Vec3d segStart = toVec3(std::get<0>(projPt));
-    Vec3d segEnd = p;
+    ES::V3d segStart = toVec3(std::get<0>(projPt));
+    ES::V3d segEnd = p;
 
-    double segLength = len(segEnd - segStart);
-    Vec3d segEndSelf = (segEnd - segStart) / segLength * (segLength - 1e-5) + segStart;
+    double segLength = (segEnd - segStart).norm();
+    ES::V3d segEndSelf = (segEnd - segStart) / segLength * (segLength - 1e-5) + segStart;
 
     // check  if it intersects with itself
     while (!lineSegmentQueryStack.empty())
@@ -637,8 +637,8 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
 
     // if there is a intersection point
     if (retID >= 0) {
-      Vec3d pt = segStart * segW[0] + segEnd * segW[1];
-      double dist = len(pt - p);
+      ES::V3d pt = segStart * segW[0] + segEnd * segW[1];
+      double dist = (pt - p).norm();
 
       // if dist is small enough
       if (dist <= maxAllowedRadiusDist) {
@@ -655,9 +655,9 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     // if there is a intersection point,
     // it means the target mesh is in contact
     if (retID >= 0) {
-      Vec3d pt = segStart * segW[0] + segEnd * segW[1];
-      double dist0 = len(pt - segStart);
-      double dist1 = len(p - segStart);
+      ES::V3d pt = segStart * segW[0] + segEnd * segW[1];
+      double dist0 = (pt - segStart).norm();
+      double dist1 = (p - segStart).norm();
 
       if (dist1 < dist0) {
         targetMeshChoosenVertex[vi] = 1;
@@ -666,7 +666,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   }  // );
 
   if (dumpMesh) {
-    TriMeshGeo m;
+    pgo::Mesh::TriMeshGeo m;
     for (int i = 0; i < targetMesh.numVertices(); i++) {
       if (targetMeshChoosenVertex[i]) {
         m.addPos(targetMesh.pos(i));
@@ -679,8 +679,8 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     for (int j = 0; j < 3; j++) {
       if (targetMeshChoosenVertex[targetMesh.triVtxID(ti, j)] &&
         targetMeshChoosenVertex[targetMesh.triVtxID(ti, (j + 1) % 3)] == 0) {
-        Vec3d p0 = targetMesh.pos(ti, j);
-        Vec3d p1 = targetMesh.pos(ti, (j + 1) % 3);
+        ES::V3d p0 = targetMesh.pos(ti, j);
+        ES::V3d p1 = targetMesh.pos(ti, (j + 1) % 3);
 
         auto projPt0 = computeProjectionPt(toP3_EK(p0), primitiveCenterEK);
         auto projPt1 = computeProjectionPt(toP3_EK(p1), primitiveCenterEK);
@@ -690,8 +690,8 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
       }
       else if (targetMeshChoosenVertex[targetMesh.triVtxID(ti, j)] == 0 &&
         targetMeshChoosenVertex[targetMesh.triVtxID(ti, (j + 1) % 3)]) {
-        Vec3d p0 = targetMesh.pos(ti, j);
-        Vec3d p1 = targetMesh.pos(ti, (j + 1) % 3);
+        ES::V3d p0 = targetMesh.pos(ti, j);
+        ES::V3d p1 = targetMesh.pos(ti, (j + 1) % 3);
 
         auto projPt0 = computeProjectionPt(toP3_EK(p0), primitiveCenterEK);
         auto projPt1 = computeProjectionPt(toP3_EK(p1), primitiveCenterEK);
@@ -703,7 +703,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   }
 
   if (dumpMesh) {
-    TriMeshGeo m;
+    pgo::Mesh::TriMeshGeo m;
     for (int i = 0; i < targetMesh.numVertices(); i++) {
       if (targetMeshChoosenVertex[i]) {
         m.addPos(targetMesh.pos(i));
@@ -711,14 +711,14 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     }
     m.save("zra.obj");
 
-    Vec3d p0 = targetMesh.pos(6968);
-    Vec3d p1 = targetMesh.pos(6573);
+    ES::V3d p0 = targetMesh.pos(6968);
+    ES::V3d p1 = targetMesh.pos(6573);
     auto projPt0 = computeProjectionPt(toP3_EK(p0), primitiveCenterEK);
     auto projPt1 = computeProjectionPt(toP3_EK(p1), primitiveCenterEK);
 
-    TriMeshGeo cc;
-    cc.addMesh(createSingleTriangleMesh(toVec3(std::get<0>(projPt0)), p0, p0 + Vec3d(1e-6)));
-    cc.addMesh(createSingleTriangleMesh(toVec3(std::get<0>(projPt1)), p1, p1 + Vec3d(1e-6)));
+    pgo::Mesh::TriMeshGeo cc;
+    cc.addMesh(pgo::Mesh::createSingleTriangleMesh(toVec3(std::get<0>(projPt0)), p0, p0 + pgo::asVec3d(1e-6)));
+    cc.addMesh(pgo::Mesh::createSingleTriangleMesh(toVec3(std::get<0>(projPt1)), p1, p1 + pgo::asVec3d(1e-6)));
     cc.save("zra1.obj");
   }
 
@@ -771,23 +771,23 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
 
   double avgEdgeLength = 0;
   for (const auto &pr : selectedEdges) {
-    avgEdgeLength += len(targetMesh.pos(pr.first) - targetMesh.pos(pr.second));
+    avgEdgeLength += (targetMesh.pos(pr.first) - targetMesh.pos(pr.second)).norm();
   }
   avgEdgeLength /= double(selectedEdges.size());
 
   // gather selected triangles
-  std::map<std::array<int, 3>, int, VegaFEM::EigenSupport::IntArrayLess<3>> selectedTrianglesQueryByEdgeIDs;
+  std::map<std::array<int, 3>, int, ES::IntArrayLess<3>> selectedTrianglesQueryByEdgeIDs;
   for (const auto &pr : selectedTrianglesWithEdges) {
     int triID = pr.first;
     std::array<int, 3> edgeIDs = { pr.second[0]->second, pr.second[1]->second, pr.second[2]->second };
     std::sort(edgeIDs.begin(), edgeIDs.end());
 
     auto ret = selectedTrianglesQueryByEdgeIDs.emplace(edgeIDs, triID);
-    ALOG(ret.second == true);
+    PGO_ALOG(ret.second == true);
   }
 
   HClockPt t2 = HClock::now();
-  SPDLOG_LOGGER_INFO(Logger::lgr(), "S0 done. t: {:.4f}s", duraSecond(t1, t2));
+  SPDLOG_LOGGER_INFO(pgo::Logging::lgr(), "S0 done. t: {:.4f}s", duraSecond(t1, t2));
 
   t1 = HClock::now();
 
@@ -796,13 +796,13 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   std::vector<K::Point_3> targetMeshVerticesER(targetMesh.numVertices());
   tbb::parallel_for(
     0, targetMesh.numVertices(), [&](int vi) {
-      const Vec3d &v_d = targetMesh.pos(vi);
+      const ES::V3d &v_d = targetMesh.pos(vi);
       targetMeshVerticesER[vi] = K::Point_3(v_d[0], v_d[1], v_d[2]);
     },
     tbb::static_partitioner());
 
   Poly targetMeshPoly;
-  CGALUtilities::triangleMesh2Polyhedron(targetMesh, targetMeshPoly);
+  pgo::CGALInterface::triangleMesh2Polyhedron(targetMesh, targetMeshPoly);
   FaceGraphTree targetMeshBVTreeExact(CGAL::faces(targetMeshPoly).first, CGAL::faces(targetMeshPoly).second, targetMeshPoly);
 
   // compute axis
@@ -827,7 +827,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   }
 
   Poly cylinderMeshPoly;
-  CGALUtilities::triangleMesh2Polyhedron(cylinderMesh, cylinderMeshPoly);
+  pgo::CGALInterface::triangleMesh2Polyhedron(cylinderMesh, cylinderMeshPoly);
   FaceGraphTree cylinderMeshBVTreeExact(CGAL::faces(cylinderMeshPoly).first, CGAL::faces(cylinderMeshPoly).second, cylinderMeshPoly);
 
   struct CylinderTriangleInfo
@@ -942,12 +942,12 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     }
 
     K::FT diff[2][3] = {
-      {CGAL::abs(p2d[0][0][0] - p2d[0][1][0]),
-       CGAL::abs(p2d[0][1][0] - p2d[0][2][0]),
-       CGAL::abs(p2d[0][2][0] - p2d[0][0][0])},
-      {CGAL::abs(p2d[1][0][0] - p2d[1][1][0]),
-       CGAL::abs(p2d[1][1][0] - p2d[1][2][0]),
-       CGAL::abs(p2d[1][2][0] - p2d[1][0][0])}
+      { CGAL::abs(p2d[0][0][0] - p2d[0][1][0]),
+        CGAL::abs(p2d[0][1][0] - p2d[0][2][0]),
+        CGAL::abs(p2d[0][2][0] - p2d[0][0][0]) },
+      { CGAL::abs(p2d[1][0][0] - p2d[1][1][0]),
+        CGAL::abs(p2d[1][1][0] - p2d[1][2][0]),
+        CGAL::abs(p2d[1][2][0] - p2d[1][0][0]) }
     };
 
     // std::cout << ti << '\n';
@@ -955,9 +955,9 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     // fmt::print("{},{},{}\n", tod(diff[0]), tod(diff[1]), tod(diff[2]));
     // std::cout << std::flush;
 
-    ALOG(diff[selID][0] < K_pi_threshold);
-    ALOG(diff[selID][1] < K_pi_threshold);
-    ALOG(diff[selID][2] < K_pi_threshold);
+    PGO_ALOG(diff[selID][0] < K_pi_threshold);
+    PGO_ALOG(diff[selID][1] < K_pi_threshold);
+    PGO_ALOG(diff[selID][2] < K_pi_threshold);
 
     for (int ci = 0; ci < 2; ci++) {
       if (diff[ci][0] < K_pi_threshold && diff[ci][1] < K_pi_threshold && diff[ci][2] < K_pi_threshold) {
@@ -971,7 +971,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     cylinderMeshProjectedTriangles[ti].projID = selID;
   }  // );
 
-  TriMeshGeo mm;
+  pgo::Mesh::TriMeshGeo mm;
   for (int ti = 0; ti < (int)cylinderMeshProjectedTriangles.size(); ti++) {
     int projID = cylinderMeshProjectedTriangles[ti].projID;
     IK::Point_3 p[3];
@@ -979,13 +979,13 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
       p[j] = pt2D_to_pt3D(cylinderMeshProjectedTriangles[ti].triangle2D[projID][j], ti);
     }
 
-    Vec3d pV3d[3] = {
-      Vec3d(tod(p[0][0]), tod(p[0][1]), tod(p[0][2])),
-      Vec3d(tod(p[1][0]), tod(p[1][1]), tod(p[1][2])),
-      Vec3d(tod(p[2][0]), tod(p[2][1]), tod(p[2][2])),
+    ES::V3d pV3d[3] = {
+      ES::V3d(tod(p[0][0]), tod(p[0][1]), tod(p[0][2])),
+      ES::V3d(tod(p[1][0]), tod(p[1][1]), tod(p[1][2])),
+      ES::V3d(tod(p[2][0]), tod(p[2][1]), tod(p[2][2])),
     };
 
-    mm.addMesh(createSingleTriangleMesh(pV3d[0], pV3d[1], pV3d[2]));
+    mm.addMesh(pgo::Mesh::createSingleTriangleMesh(pV3d[0], pV3d[1], pV3d[2]));
   }
   mm.save("rarrr.obj");
 
@@ -1118,18 +1118,18 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
 
       // if (ei == 520 && (ti == 324 || ti == 325)) {
       //   std::cout << ti << ',' << projID << std::endl;
-      //   Vec3d ps[3];
+      //   pgo::asVec3d ps[3];
       //   for (int j = 0; j < 3; j++) {
       //     ps[j][0] = tod(cylinderMeshProjectedTriangles[ti].triangle2D[projID][j][0]);
       //     ps[j][1] = tod(cylinderMeshProjectedTriangles[ti].triangle2D[projID][j][1]);
       //     ps[j][2] = 0.0;
       //   }
 
-      //   TriMeshGeo m;
-      //   m.addMesh(createSingleTriangleMesh(ps[0], ps[1], ps[2]));
+      //   pgo::Mesh::TriMeshGeo m;
+      //   m.addMesh(pgo::Mesh::.createSingleTriangleMesh(ps[0], ps[1], ps[2]));
       //   m.save("mss.obj");
 
-      //   Vec3d ss[2];
+      //   pgo::asVec3d ss[2];
       //   for (int j = 0; j < 2; j++) {
       //     ss[j][0] = tod(seg[projID][j][0]);
       //     ss[j][1] = tod(seg[projID][j][1]);
@@ -1138,7 +1138,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
 
       //   std::cout << ss[0] << ',' << ss[1] << std::endl;
 
-      //   m.addMesh(createSingleTriangleMesh(ss[0], ss[1], ss[0] + Vec3d(1e-6)));
+      //   m.addMesh(pgo::Mesh::.createSingleTriangleMesh(ss[0], ss[1], ss[0] + pgo::asVec3d(1e-6)));
       //   m.save("mss.obj");
       // }
     }
@@ -1171,26 +1171,26 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     }
   }
 
-  [[maybe_unused]] auto dumpTri = [](const K::Triangle_2 &tri) -> TriMeshGeo {
-    Vec3d p[3];
+  [[maybe_unused]] auto dumpTri = [](const K::Triangle_2 &tri) -> pgo::Mesh::TriMeshGeo {
+    ES::V3d p[3];
     for (int j = 0; j < 3; j++) {
       p[j][0] = tod(tri[j][0]);
       p[j][1] = tod(tri[j][1]);
       p[j][2] = 0;
     }
 
-    return createSingleTriangleMesh(p[0], p[1], p[2]);
+    return pgo::Mesh::createSingleTriangleMesh(p[0], p[1], p[2]);
   };
 
-  [[maybe_unused]] auto dumpSeg = [](const K::Segment_2 &seg) -> TriMeshGeo {
-    Vec3d p[2];
+  [[maybe_unused]] auto dumpSeg = [](const K::Segment_2 &seg) -> pgo::Mesh::TriMeshGeo {
+    ES::V3d p[2];
     for (int j = 0; j < 2; j++) {
       p[j][0] = tod(seg[j][0]);
       p[j][1] = tod(seg[j][1]);
       p[j][2] = 0;
     }
 
-    return createSingleTriangleMesh(p[0], p[1], p[0] + Vec3d(1e-4));
+    return pgo::Mesh::createSingleTriangleMesh(p[0], p[1], p[0] + pgo::asVec3d(1e-4));
   };
 
   // =====================================
@@ -1251,15 +1251,15 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
                 }
               }
 
-              // TriMeshGeo m1 = dumpTri(*iter);
-              // TriMeshGeo m2 = dumpSeg(*s);
+              // pgo::Mesh::TriMeshGeo m1 = dumpTri(*iter);
+              // pgo::Mesh::TriMeshGeo m2 = dumpSeg(*s);
 
-              // TriMeshGeo mall;
+              // pgo::Mesh::TriMeshGeo mall;
               // mall.addMesh(m1);
               // mall.addMesh(m2);
               // mall.save("rzzz.obj");
 
-              ALOG(CGAL::abs(remainingTri.area()) > 0);
+              PGO_ALOG(CGAL::abs(remainingTri.area()) > 0);
 
               // create 3 triangles for the second point in the remaining triangle
               // the segment must be on the edge of some triangles
@@ -1395,11 +1395,11 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   std::cout << std::endl;
 
   t2 = HClock::now();
-  SPDLOG_LOGGER_INFO(Logger::lgr(), "S1 Done. Time cost: {:.4f}s", duraSecond(t1, t2));
+  SPDLOG_LOGGER_INFO(pgo::Logging::lgr(), "S1 Done. Time cost: {:.4f}s", duraSecond(t1, t2));
 
   // ================================================================
   // next we merge all cut triangles into a closed manifold mesh
-  TriMeshNeighbor cylinderMeshNeighbor(cylinderMesh);
+  pgo::Mesh::TriMeshNeighbor cylinderMeshNeighbor(cylinderMesh);
 
   std::vector<int> triIDQ;
   triIDQ.reserve(cylinderMesh.numTriangles() * 2);
@@ -1412,7 +1412,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   std::vector<IK::Point_3> finalPoints3D;
   finalPoints3D.reserve(cylinderMesh.numTriangles() * 10);
 
-  std::vector<Vec3i> finalTriangles;
+  std::vector<ES::V3i> finalTriangles;
   finalTriangles.reserve(cylinderMesh.numTriangles() * 10);
 
   std::map<std::pair<int, int>, std::vector<int>> edgeVertexIDs;
@@ -1458,16 +1458,16 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
             vtx.emplace_back(pt2D_to_pt3D(corefinedPatches[triIDCur].vertices[i], triIDCur));
           }
 
-          CGALUtilities::Polyhedron<IK> finalMesh;
-          CGALUtilities::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<std::array<int, 3>>::iterator> builder(
+          pgo::CGALInterface::Polyhedron<IK> finalMesh;
+          pgo::CGALInterface::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<std::array<int, 3>>::iterator> builder(
             vtx.begin(), corefinedPatches[triIDCur].triangles.begin(), (int)vtx.size(), (int)corefinedPatches[triIDCur].triangles.size());
           finalMesh.delegate(builder);
 
           std::ofstream("rzr1.off") << finalMesh;
 
           if (1) {
-            CGALUtilities::Polyhedron<IK> finalMesh;
-            CGALUtilities::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<Vec3i>::iterator> builder(
+            pgo::CGALInterface::Polyhedron<IK> finalMesh;
+            pgo::CGALInterface::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<ES::V3i>::iterator> builder(
               finalPoints3D.begin(), finalTriangles.begin(), (int)finalPoints3D.size(), (int)finalTriangles.size());
             finalMesh.delegate(builder);
 
@@ -1497,8 +1497,8 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
               vtx.emplace_back(pt2D_to_pt3D(corefinedPatches[triIDCur].vertices[i], triIDCur));
             }
 
-            CGALUtilities::Polyhedron<IK> finalMesh;
-            CGALUtilities::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<std::array<int, 3>>::iterator> builder(
+            pgo::CGALInterface::Polyhedron<IK> finalMesh;
+            pgo::CGALInterface::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<std::array<int, 3>>::iterator> builder(
               vtx.begin(), corefinedPatches[triIDCur].triangles.begin(), (int)vtx.size(), (int)corefinedPatches[triIDCur].triangles.size());
             finalMesh.delegate(builder);
             // std::ofstream("rzr1.off") << finalMesh;
@@ -1514,7 +1514,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
       int vi = corefinedPatches[triIDCur].cornerVertices[j];
       if (newVertexIDs[cylinderMesh.triVtxID(triIDCur, j)] >= 0) {
         if (vertexMasks[vi] >= 0) {
-          ALOG(vertexMasks[vi] == newVertexIDs[cylinderMesh.triVtxID(triIDCur, j)]);
+          PGO_ALOG(vertexMasks[vi] == newVertexIDs[cylinderMesh.triVtxID(triIDCur, j)]);
         }
         else {
           vertexMasks[vi] = newVertexIDs[cylinderMesh.triVtxID(triIDCur, j)];
@@ -1551,7 +1551,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
       // if it is an edge that is visited for the first time
       if (edgeMask[j]) {
         auto ret = edgeVertexIDs.emplace(edgeID, corefinedPatches[triIDCur].edgeVertices[j]);
-        ALOG(ret.second == true);
+        PGO_ALOG(ret.second == true);
         auto iter = ret.first;
         for (int k = 0; k < (int)iter->second.size(); k++) {
           iter->second[k] = vertexMasks[iter->second[k]];
@@ -1566,7 +1566,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     // adding cut triangles to the global array
     triangleNewIDs.assign(corefinedPatches[triIDCur].triangles.size(), -1);
     for (int j = 0; j < (int)corefinedPatches[triIDCur].triangles.size(); j++) {
-      Vec3i triID(corefinedPatches[triIDCur].triangles[j].data());
+      ES::V3i triID = ES::Mp<const ES::V3i>(corefinedPatches[triIDCur].triangles[j].data());
       for (int k = 0; k < 3; k++) {
         triID[k] = vertexMasks[triID[k]];
       }
@@ -1597,7 +1597,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     }
 
     // expand bfs search
-    Vec3i triN = cylinderMeshNeighbor.getTriangleNeighbors(triIDCur);
+    ES::V3i triN = cylinderMeshNeighbor.getTriangleNeighbors(triIDCur);
     for (int j = 0; j < 3; j++) {
       if (triN[j] < 0) {
         continue;
@@ -1612,31 +1612,31 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   }
 
   t2 = std::chrono::high_resolution_clock::now();
-  SPDLOG_LOGGER_INFO(Logger::lgr(), "S2 Done. Time cost: {:.4f}s", double(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()) * 1e-6);
+  SPDLOG_LOGGER_INFO(pgo::Logging::lgr(), "S2 Done. Time cost: {:.4f}s", double(std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count()) * 1e-6);
 
   if (dumpMesh) {
-    CGALUtilities::Polyhedron<IK> finalMesh;
-    CGALUtilities::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<Vec3i>::iterator> builder(
+    pgo::CGALInterface::Polyhedron<IK> finalMesh;
+    pgo::CGALInterface::PolyhedronBuilderNonTriangle<IK, std::vector<IK::Point_3>::iterator, std::vector<ES::V3i>::iterator> builder(
       finalPoints3D.begin(), finalTriangles.begin(), (int)finalPoints3D.size(), (int)finalTriangles.size());
     finalMesh.delegate(builder);
     // std::ofstream("rzr0.off") << finalMesh;
 
-    TriMeshGeo mesh;
+    pgo::Mesh::TriMeshGeo mesh;
     int idx = 0;
-    std::map<CGALUtilities::Polyhedron<IK>::Vertex_const_handle, int> vertexIndices;
-    for (CGALUtilities::Polyhedron<IK>::Vertex_const_iterator itt = finalMesh.vertices_begin(); itt != finalMesh.vertices_end(); ++itt) {
+    std::map<pgo::CGALInterface::Polyhedron<IK>::Vertex_const_handle, int> vertexIndices;
+    for (pgo::CGALInterface::Polyhedron<IK>::Vertex_const_iterator itt = finalMesh.vertices_begin(); itt != finalMesh.vertices_end(); ++itt) {
       const IK::Point_3 &pt = itt->point();
-      mesh.addPos(Vec3d{ tod(pt[0]), tod(pt[1]), tod(pt[2]) });
+      mesh.addPos(ES::V3d{ tod(pt[0]), tod(pt[1]), tod(pt[2]) });
 
       vertexIndices.insert(make_pair(itt, idx));
       idx++;
     }
 
-    for (CGALUtilities::Polyhedron<IK>::Face_const_iterator itt = finalMesh.facets_begin(); itt != finalMesh.facets_end(); ++itt) {
-      Vec3i face;
+    for (pgo::CGALInterface::Polyhedron<IK>::Face_const_iterator itt = finalMesh.facets_begin(); itt != finalMesh.facets_end(); ++itt) {
+      ES::V3i face;
       int inc = 0;
 
-      CGALUtilities::Polyhedron<IK>::Halfedge_around_facet_const_circulator ctr = itt->facet_begin();
+      pgo::CGALInterface::Polyhedron<IK>::Halfedge_around_facet_const_circulator ctr = itt->facet_begin();
       do {
         auto idxItt = vertexIndices.find(ctr->vertex());
         if (idxItt == vertexIndices.end()) {
@@ -1659,9 +1659,9 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
 
   // remove triangles that are not necessary
   using I2 = std::array<int, 2>;
-  using I2Hash = VegaFEM::EigenSupport::IntArrayHash<2>;
-  using I2Equal = VegaFEM::EigenSupport::IntArrayEqual<2>;
-  using I2Less = VegaFEM::EigenSupport::IntArrayLess<2>;
+  using I2Hash = ES::IntArrayHash<2>;
+  using I2Equal = ES::IntArrayEqual<2>;
+  using I2Less = ES::IntArrayLess<2>;
   auto makeKey = [](int tri, int j) -> I2 {
     return I2{ tri, j };
   };
@@ -1680,10 +1680,10 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   }
 
   // build a connectivity structure
-  TriMeshGeo dummyCorefinedMesh;
-  dummyCorefinedMesh.positions().assign(finalPoints3D.size(), Vec3d(0.0));
+  pgo::Mesh::TriMeshGeo dummyCorefinedMesh;
+  dummyCorefinedMesh.positions().assign(finalPoints3D.size(), pgo::asVec3d(0.0));
   dummyCorefinedMesh.triangles() = finalTriangles;
-  TriMeshNeighbor corefinedMeshNeighbor(dummyCorefinedMesh);
+  pgo::Mesh::TriMeshNeighbor corefinedMeshNeighbor(dummyCorefinedMesh);
 
   // flag that markers whether each triangle is visited
   // <0: not visit; >= 0; the set ID for each triangle
@@ -1774,7 +1774,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
         validSetIDs.emplace_back(setID);
       }
       else {
-        SPDLOG_LOGGER_DEBUG(Logger::lgr(), "Find a false positive edge set. ({}, {}, {})", edgeIDSet[0], edgeIDSet[1], edgeIDSet[2]);
+        SPDLOG_LOGGER_DEBUG(pgo::Logging::lgr(), "Find a false positive edge set. ({}, {}, {})", edgeIDSet[0], edgeIDSet[1], edgeIDSet[2]);
       }
     }
 
@@ -1782,12 +1782,12 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   }
 
   if (dumpMesh) {
-    std::vector<Vec3d> kk;
+    std::vector<ES::V3d> kk;
     for (int i = 0; i < (int)finalPoints3D.size(); i++) {
       kk.emplace_back(tod(finalPoints3D[i].x()), tod(finalPoints3D[i].y()), tod(finalPoints3D[i].z()));
     }
 
-    TriMeshGeo asas;
+    pgo::Mesh::TriMeshGeo asas;
     asas.positions() = kk;
 
     for (int si : validSetIDs) {
@@ -1873,7 +1873,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
       }
     }
 
-    ALOG(edgeLoops.front() == edgeLoops.back());
+    PGO_ALOG(edgeLoops.front() == edgeLoops.back());
     edgeLoops.pop_back();
 
     // compute corner vertex
@@ -1884,10 +1884,10 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
       if (it != vertexIsOnTargetMesh.end() &&
         it->second[0] == 0) {
         if (ctr >= 3) {
-          TriMeshGeo mm;
+          pgo::Mesh::TriMeshGeo mm;
           for (int vi : edgeLoops) {
             IK::Point_3 p = finalPoints3D[vi];
-            mm.addPos(Vec3d(tod(p[0]), tod(p[1]), tod(p[2])));
+            mm.addPos(ES::V3d(tod(p[0]), tod(p[1]), tod(p[2])));
           }
           mm.save("bug.obj");
 
@@ -1972,7 +1972,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
           count0++;
           ith1 = (ith1 + 1) % (int)edgeLoops.size();
         }
-        ALOG(count0 == count1);
+        PGO_ALOG(count0 == count1);
       }
 
       edgeLoops1.emplace_back(edgeLoops[ith]);
@@ -2065,7 +2065,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   for (auto &f : finalFaces) {
     for (int &vid : f) {
       auto it = usedVertices.find(vid);
-      ALOG(it != usedVertices.end());
+      PGO_ALOG(it != usedVertices.end());
       vid = it->second;
     }
   }
@@ -2109,7 +2109,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     std::ofstream("rzr1.off") << finalMesh;
     std::ofstream outfile("rzr.obj");
     for (auto vit = finalMesh.vertices_begin(); vit != finalMesh.vertices_end(); ++vit) {
-      Vec3d p = toVec3(vit->point());
+      ES::V3d p = toVec3(vit->point());
       outfile << "v " << p[0] << ' ' << p[1] << ' ' << p[2] << std::endl;
     }
 
@@ -2202,11 +2202,11 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     std::ofstream("tri1.off") << finalMesh;
   }
   else {
-    TriMeshGeo meshOut;
-    CGALUtilities::polyhedron2TriangleMesh(finalMesh, meshOut);
+    pgo::Mesh::TriMeshGeo meshOut;
+    pgo::CGALInterface::polyhedron2TriangleMesh(finalMesh, meshOut);
     meshOut.save("rzr2.obj");
 
-    TriMeshNeighbor m(meshOut);
+    pgo::Mesh::TriMeshNeighbor m(meshOut);
     std::cout << "Is triangle mesh: " << finalMesh.is_pure_triangle() << std::endl;
   }
   // }
@@ -2356,8 +2356,8 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     for (auto vit = finalMesh.vertices_begin(); vit != finalMesh.vertices_end(); ++vit) {
       int vid = (int)vit->id();
 
-      // Vec3d pp(-0.141025, 0.0707617, -0.0211217);
-      // Vec3d p = toVec3(vit->point());
+      // pgo::asVec3d pp(-0.141025, 0.0707617, -0.0211217);
+      // pgo::asVec3d p = toVec3(vit->point());
       // if (len(p - pp) < 1e-3) {
       //   std::cout << p << std::endl;
       //   std::cout << "z";
@@ -2465,7 +2465,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
     std::ofstream("rzr4.off") << finalMesh;
   }
 
-  CGALUtilities::polyhedron2TriangleMesh(finalMesh, meshOut);
+  pgo::CGALInterface::polyhedron2TriangleMesh(finalMesh, meshOut);
 
   if (filename) {
     saveExact(finalMesh, filename);
@@ -2515,7 +2515,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const TriMeshGeo &c
   return 0;
 }
 
-int MedialAxisRepresentation::fillCylinder(const TriMeshGeo &sphereMesh, const Vec3d centers[2], TriMeshGeo &meshOut)
+int MedialAxisRepresentation::fillCylinder(const pgo::Mesh::TriMeshGeo &sphereMesh, const ES::V3d centers[2], pgo::Mesh::TriMeshGeo &meshOut)
 {
   K::Point_3 primitiveCenterEK[2] = {
     K::Point_3(centers[0][0], centers[0][1], centers[0][2]),
@@ -2523,7 +2523,7 @@ int MedialAxisRepresentation::fillCylinder(const TriMeshGeo &sphereMesh, const V
   };
 
   Poly finalMesh;
-  CGALUtilities::triangleMesh2Polyhedron(sphereMesh, finalMesh);
+  pgo::CGALInterface::triangleMesh2Polyhedron(sphereMesh, finalMesh);
 
   // create a closed mesh
   if constexpr (1) {
@@ -2561,7 +2561,6 @@ int MedialAxisRepresentation::fillCylinder(const TriMeshGeo &sphereMesh, const V
       hh = hh->next();
     } while (hh != border_h[1]);
 
-    
     auto proj0 = computeProjectionPt(border_h[0]->vertex()->point(), primitiveCenterEK);
     if ((std::get<0>(proj0) - primitiveCenterEK[0]).squared_length() <
       (std::get<0>(proj0) - primitiveCenterEK[1]).squared_length()) {
@@ -2595,7 +2594,7 @@ int MedialAxisRepresentation::fillCylinder(const TriMeshGeo &sphereMesh, const V
     std::cout << vidCur << std::endl;
   }
 
-  CGALUtilities::polyhedron2TriangleMesh(finalMesh, meshOut);
+  pgo::CGALInterface::polyhedron2TriangleMesh(finalMesh, meshOut);
 
   return 0;
 }
