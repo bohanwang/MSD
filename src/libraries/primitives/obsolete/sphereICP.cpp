@@ -1,39 +1,18 @@
 #include "sphereICP.h"
 
-#include "sphereInversionBarrierEnergy.h"
-#include "sphereTriangleFlippingConstraints.h"
-#include "logger.h"
+#include "pgoLogging.h"
 #include "CGALUtilities.h"
 #include "basicUtilities.h"
 #include "libiglInterface.h"
 
 #include "EigenSupport.h"
-#include "EigenVegaTypeConverter.h"
-#include "quadraticPotentialEnergy.h"
-#include "determinantDerivatives.h"
-#include "constraintFunctions.h"
-#include "potentialEnergies.h"
 #include "geometryQuery.h"
 #include "createTriMesh.h"
-#include "multiVertexConstrainedRigidMotion.h"
-#include "multiVertexSlidingSoftConstraints.h"
-#include "multiVertexPullingSoftConstraintsPOrder.h"
-#include "surfaceSmoothnessAbsoluteMeanCurvature.h"
-#include "linearPotentialEnergy.h"
 #include "finiteDifference.h"
 #include "automaticDifferentiation_autodiff.h"
 #include "triMeshNeighbor.h"
 #include "minimizeEnergy.h"
 #include "predicates.h"
-#include "surfaceTriangleDeformation.h"
-#include "triMeshSampler.h"
-#include "barycentricCoordinateSlidingSoftConstraints.h"
-#include "vertexAffineToPositionEnergy.h"
-
-#if defined(USE_KNITRO)
-#  include "knitroOptimizer.h"
-#  include "knitroProblem.h"
-#endif
 
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -45,10 +24,11 @@
 #include <filesystem>
 
 using namespace MedialAxisRepresentation;
-namespace ES = VegaFEM::EigenSupport;
 
 namespace MedialAxisRepresentation
 {
+namespace ES = pgo::EigenSupport;
+
 struct ICPData
 {
   ES::VXd coeffs;
@@ -62,49 +42,6 @@ struct ICPData
     std::iota(vertexIndices.begin(), vertexIndices.end(), 0);
   }
 };
-
-#if defined(USE_KNITRO)
-struct ICPSolver
-{
-  void init(VegaFEM::NonlinearOptimization::PotentialEnergy_const_p energy, VegaFEM::NonlinearOptimization::ConstraintFunctions_const_p constraints,
-    ES::ConstRefVecXd x, ES::ConstRefVecXd xlow, ES::ConstRefVecXd xhi, ES::ConstRefVecXd clow, ES::ConstRefVecXd chi)
-  {
-    if (constraints) {
-      problem = std::make_unique<VegaFEM::NonlinearOptimization::KnitroProblem>(energy, constraints);
-    }
-    else {
-      problem = std::make_unique<VegaFEM::NonlinearOptimization::KnitroProblem>(energy);
-    }
-
-    problem->setInit(x);
-    problem->setRange(xlow, xhi);
-
-    if (constraints) {
-      problem->setConstraintsRange(clow, chi);
-    }
-
-    solver = std::make_unique<VegaFEM::NonlinearOptimization::KnitroOptimizer>(problem.get());
-    solver->setConfigFile("config.opt");
-
-    solver->setMaxIter(300);
-
-    solver->setOptTol(1e-4);
-    solver->setFeasTol(1e-8);
-    solver->setVerbose(2);
-
-    solver->enableMultiEvaluation(0);
-    solver->init();
-  }
-
-  void getx(ES::VXd &x) const
-  {
-    x.noalias() = Eigen::Map<const ES::VXd>(solver->getx(), problem->getn());
-  }
-
-  std::unique_ptr<VegaFEM::NonlinearOptimization::KnitroProblem> problem;
-  std::unique_ptr<VegaFEM::NonlinearOptimization::KnitroOptimizer> solver;
-};
-#endif
 
 struct SphereICPSolverData
 {
@@ -410,10 +347,10 @@ void SphereICPSolverData::computeNewLaplacianAndMass(const TriMeshGeo &mesh)
       int dest = mesh.triVtxID(i, edgeVertexIDs(e, 1));
 
       int row_cols[4][2] = {
-        {source,   dest},
-        {  dest, source},
-        {source, source},
-        {  dest,   dest}
+        { source, dest },
+        { dest, source },
+        { source, source },
+        { dest, dest }
       };
 
       double val[4] = { 1, 1, -1, -1 };

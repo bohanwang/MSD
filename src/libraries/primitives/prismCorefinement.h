@@ -6,9 +6,9 @@
 
 namespace MedialAxisRepresentation
 {
-int corefinePrismMeshWithTarget(const TriMeshGeo &prismMesh, const Vec3d centers[3],
-  const TriMeshGeo &targetMesh, const TriMeshBVTree &targetMeshBVTree, const TriMeshPseudoNormal &targetMeshNormals,
-  double maxConfidentDist, double maxAllowedRadiusDist, TriMeshGeo &meshOut, const char *filename = nullptr);
+int corefinePrismMeshWithTarget(const pgo::Mesh::TriMeshGeo &prismMesh, const pgo::EigenSupport::V3d centers[3],
+  const pgo::Mesh::TriMeshGeo &targetMesh, const pgo::Mesh::TriMeshBVTree &targetMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &targetMeshNormals,
+  double maxConfidentDist, double maxAllowedRadiusDist, pgo::Mesh::TriMeshGeo &meshOut, const char *filename = nullptr);
 
-void fillPrism(const TriMeshGeo &prismMesh, const Vec3d centers[3], TriMeshGeo &meshOut);
+void fillPrism(const pgo::Mesh::TriMeshGeo &prismMesh, const pgo::EigenSupport::V3d centers[3], pgo::Mesh::TriMeshGeo &meshOut);
 }  // namespace MedialAxisRepresentation

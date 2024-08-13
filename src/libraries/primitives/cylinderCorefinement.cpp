@@ -8,8 +8,6 @@
 #include "createTriMesh.h"
 #include "triMeshNeighbor.h"
 #include "EigenSupport.h"
-#include "minimizeEnergy.h"
-#include "quadraticPotentialEnergy.h"
 
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>

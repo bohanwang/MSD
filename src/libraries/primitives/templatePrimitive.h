@@ -1,22 +1,18 @@
 #pragma once
 
 #include "CGALUtilities.h"
-#include "EigenVegaTypeConverter.h"
 #include "libiglInterface.h"
 #include "createTriMesh.h"
 #include "triMeshGeo.h"
 #include "triMeshNeighbor.h"
 #include "boundingVolumeTree.h"
 #include "triMeshPseudoNormal.h"
-#include "logger.h"
 
 namespace MedialAxisRepresentation
 {
-namespace ES = VegaFEM::EigenSupport;
-
 void rotAlignMat(const ES::V3d &v0, const ES::V3d &v1, ES::M3d &rot);
 TriMeshGeo createPrismWallMeshForFigures(const ES::V3d &e1, const ES::V3d &e2, const ES::V3d &e3, const double thickness, const double approxTargetRadius,
-    std::vector<ES::V3d> &prismVtxDri, std::vector<ES::V3d> &baryCentricWeights, std::vector<int> &rotAxisID);
+  std::vector<ES::V3d> &prismVtxDri, std::vector<ES::V3d> &baryCentricWeights, std::vector<int> &rotAxisID);
 class TemplatePrimitive
 {
 public:

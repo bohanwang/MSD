@@ -11,7 +11,6 @@
 #include "triMeshNeighbor.h"
 #include "minimizeEnergy.h"
 #include "predicates.h"
-#include "triMeshSampler.h"
 
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -26,6 +25,8 @@
 
 namespace MedialAxisRepresentation
 {
+namespace ES = pgo::EigenSupport;
+
 struct PrimitiveICPSolverData
 {
   PrimitiveICPSolverData(int nv)

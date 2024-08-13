@@ -8,12 +8,9 @@
 #include "boundingVolumeTree.h"
 #include "triMeshPseudoNormal.h"
 #include "libiglInterface.h"
-#include "pgoLogging.h"
 
 namespace MedialAxisRepresentation
 {
-namespace ES = pgo::EigenSupport;
-
 struct PrimitiveICPSolverData;
 
 enum class SolverType : int
@@ -49,10 +46,10 @@ struct PrimitiveICPSolverParameters
 class PrimitiveICPSolver
 {
 public:
-  PrimitiveICPSolver(const ES::MXd &centers, const ES::VXd &centerRadii, const PrimitiveICPSolverParameters &param_, int primitiveType_);
+  PrimitiveICPSolver(const pgo::EigenSupport::MXd &centers, const pgo::EigenSupport::VXd &centerRadii, const PrimitiveICPSolverParameters &param_, int primitiveType_);
   ~PrimitiveICPSolver();
 
-  int sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo &targetMesh,
+  int sim(const pgo::EigenSupport::MXd &centers, const pgo::Mesh::TriMeshGeo &targetMesh,
     const pgo::Mesh::TriMeshBVTree &targetMeshBVTree,
     const pgo::Mesh::TriMeshPseudoNormal &targetMeshNormals,
     const std::string &prefix, pgo::Mesh::TriMeshGeo &meshOut);

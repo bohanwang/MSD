@@ -1,7 +1,5 @@
 #pragma once
 
-#include "sphereICP.h"
-
 #include "sphericalFunction/templateSpheres.h"
 
 #include <memory>
