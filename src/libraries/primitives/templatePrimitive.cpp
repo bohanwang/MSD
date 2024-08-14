@@ -1,22 +1,27 @@
 #include "templatePrimitive.h"
-#include "sphericalFunction/templateSpheres.h"
+#include "templateSpheres.h"
 
-#include "logger.h"
+#include "pgoLogging.h"
+#include "createTriMesh.h"
+#include "cgalInterface.h"
+#include "libiglInterface.h"
+
+#include <fmt/format.h>
 
 namespace MedialAxisRepresentation
 {
-namespace ES = VegaFEM::EigenSupport;
+namespace ES = pgo::EigenSupport;
 
 void rotatePoint(const ES::V3d &p, const ES::V3d &origin, const ES::V3d &rotAxism, double angle, ES::V3d &pRotated);
 
-TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V3d &e3, const double thickness, const double approxTargetRadius,
+pgo::Mesh::TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V3d &e3, const double thickness, const double approxTargetRadius,
   std::vector<ES::V3d> &prismVtxDri, std::vector<ES::V3d> &baryCentricWeights, std::vector<int> &rotAxisID, double useHardCodedTargetEdgeLenForTri = -1);
 
 // v1 = rot * v0
 void rotAlignMat(const ES::V3d &v0, const ES::V3d &v1, ES::M3d &rot)
 {
-  ALOG(std::abs(v0.norm() - 1) < 1e-6);
-  ALOG(std::abs(v1.norm() - 1) < 1e-6);
+  PGO_ALOG(std::abs(v0.norm() - 1) < 1e-6);
+  PGO_ALOG(std::abs(v1.norm() - 1) < 1e-6);
 
   // calculate rotation matrix
   ES::V3d v = v0.cross(v1);
@@ -36,24 +41,24 @@ void rotAlignMat(const ES::V3d &v0, const ES::V3d &v1, ES::M3d &rot)
   }
 }
 
-void getTemplateMeshForLevel(int level, int primitiveType, TriMeshGeo &outMesh)
+void getTemplateMeshForLevel(int level, int primitiveType, pgo::Mesh::TriMeshGeo &outMesh)
 {
   if (primitiveType == 1) {
     if (level == -1) {
       TemplateSpheres templateSpheres(200, 3800, MedialAxisRepresentation::SphereRefinementMethod::ISOTROPIC, "template-spheres");
       outMesh = templateSpheres.sphereMeshes[3];  // radius 1.0, center (0, 0, 0)
     }
-  } else if (primitiveType == 2) {
+  }
+  else if (primitiveType == 2) {
     if (level == -1) {
-
     }
   }
 }
 
 void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii, const int level)
 {
-  ALOG(centers.rows() == primitiveType);
-  ALOG(centerRadii.size() == primitiveType);
+  PGO_ALOG(centers.rows() == primitiveType);
+  PGO_ALOG(centerRadii.size() == primitiveType);
 
   if (primitiveType == 1) {
     // sphere
@@ -68,22 +73,23 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     else if (level == 2) {
       TemplateSpheres templateSpheres(50, 50, MedialAxisRepresentation::SphereRefinementMethod::ISOTROPIC, "template-spheres");
       primitiveTemplateMesh = templateSpheres.sphereMeshes[0];  // radius 1.0, center (0, 0, 0)
-    } else {
-      ALOG(false);
+    }
+    else {
+      PGO_ALOG(false);
     }
     // TemplateSpheres templateSpheres(5, 6, MedialAxisRepresentation::SphereRefinementMethod::ISOTROPIC, "debug-spheres");
     // fmt::print("templateSpheres.sphereMeshes.size() = {}\n", templateSpheres.sphereMeshes.size());
     // primitiveTemplateMesh = templateSpheres.sphereMeshes[0];  // radius 1.0, center (0, 0, 0)
 
     int numVtx = primitiveTemplateMesh.numVertices();
-    Vec3d center = ES::toVec3d(centers.row(0));
+    ES::V3d center = centers.row(0);
 
     rayDir.resize(numVtx, 3);
     rayStartPos.resize(numVtx, 3);
     for (int i = 0; i < numVtx; i++) {
-      ES::V3d p = ES::toESV3d(primitiveTemplateMesh.pos(i));
+      ES::V3d p = primitiveTemplateMesh.pos(i);
       rayDir.row(i) = p / p.norm();
-      rayStartPos.row(i) = ES::toESV3d(center);
+      rayStartPos.row(i) = center;
     }
 
     rayInitialLength.resize(numVtx);
@@ -122,8 +128,9 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     }
     else if (level == 2) {
       totalPt = 50;
-    } else {
-      ALOG(false);
+    }
+    else {
+      PGO_ALOG(false);
     }
 
     double ratio = height / (2 * M_PI * approxTargetRadius);
@@ -134,7 +141,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     // numCirclePts = 20;
     // numHeightPts = 30;
 
-    primitiveTemplateMesh = createCylinderWallMesh(radius, height, numCirclePts, numHeightPts);
+    primitiveTemplateMesh = pgo::Mesh::createCylinderWallMesh(radius, height, numCirclePts, numHeightPts);
     int numVtx = primitiveTemplateMesh.numVertices();
     fmt::print("numVtx = {}\n", numVtx);
 
@@ -146,6 +153,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     ES::V3d axis = (c2 - c1).cross(c2Hat - c1Hat);
     axis = axis / axis.norm();
     double angle = acos((c2Hat - c1Hat).dot(c1 - c2) / ((c2Hat - c1Hat).norm() * (c1 - c2).norm()));
+
     // Use Rodrigues rotation formula
     ES::M3d W;
     W << 0, -axis(2), axis(1),
@@ -154,9 +162,9 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     ES::M3d R = ES::M3d::Identity() + sin(angle) * W + (1 - cos(angle)) * W * W;
 
     for (int i = 0; i < numVtx; i++) {
-      ES::V3d v = ES::toESV3d(primitiveTemplateMesh.pos(i));
+      ES::V3d v = primitiveTemplateMesh.pos(i);
       v = R * v + translate;
-      primitiveTemplateMesh.pos(i) = ES::toVec3d(v);
+      primitiveTemplateMesh.pos(i) = v;
     }
 
     rayDir.resize(numVtx, 3);
@@ -169,7 +177,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
 
     for (int i = 0; i < numVtx; i++) {
       ES::V3d seg = c2 - c1;
-      ES::V3d pos = ES::toESV3d(primitiveTemplateMesh.pos(i));
+      ES::V3d pos = primitiveTemplateMesh.pos(i);
       ES::V3d vec = pos - c1;
       double vTs_sTs = vec.dot(seg) / seg.dot(seg);
       ES::V3d dir = vec - vTs_sTs * seg;
@@ -185,7 +193,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
   }
   else {
     // prism
-    ALOG(primitiveType == 3);
+    PGO_ALOG(primitiveType == 3);
     ES::V3d c0 = centers.row(0);
     ES::V3d c1 = centers.row(1);
     ES::V3d c2 = centers.row(2);
@@ -205,13 +213,14 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     }
     else if (level == 2) {
       useHardCodedTargetEdgeLenForTri = 0.5;
-    } else {
-      ALOG(false);
+    }
+    else {
+      PGO_ALOG(false);
     }
 
     primitiveTemplateMesh = createPrismWallMesh(c0, c1, c2, thickness, approxTargetRadius, prismVtxDri, baryCentricWeightsVec, rotAxisIDVec, useHardCodedTargetEdgeLenForTri);
 
-    ALOG(baryCentricWeightsVec.size() == rotAxisIDVec.size());
+    PGO_ALOG(baryCentricWeightsVec.size() == rotAxisIDVec.size());
 
     int numVtx = prismVtxDri.size();
     fmt::print("numVtx = {}\n", numVtx);
@@ -232,7 +241,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     for (int i = 0; i < numVtx; i++) {
       ES::V3d rayDir_i = prismVtxDri[i];
       rayDir.row(i) = rayDir_i;
-      ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
+      PGO_ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
       baryCentricWeights.row(i) = baryCentricWeightsVec[i];
 
       rayStartPos.row(i) = c0 * baryCentricWeightsVec[i](0) + c1 * baryCentricWeightsVec[i](1) + c2 * baryCentricWeightsVec[i](2);
@@ -247,7 +256,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
       // // 0 - 1, 1 - 2, 2 - 0
       // for (int k = 0; k < 3; k++) {
       //   if (isOnEdge) {
-      //     ALOG(false);
+      //     PGO_ALOG(false);
       //   }
       //   if (baryCentricWeightsVec[i](k) < 1e-6) {
       //     isOnEdge = true;
@@ -273,13 +282,13 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
         axisZ_i /= axisZ_i.norm();
 
         double debugDot = rayDir_i.dot(rayDirRotAxis_i);
-        ALOG(std::abs(rayDir_i.dot(rayDirRotAxis_i)) < 1e-6);
+        PGO_ALOG(std::abs(rayDir_i.dot(rayDirRotAxis_i)) < 1e-6);
 
         rayDirLocalFrameWeights(i, 0) = rayDir_i.dot(triPlaneNormal);
         rayDirLocalFrameWeights(i, 1) = rayDir_i.dot(axisZ_i);
 
         ES::V3d debugDir = rayDirLocalFrameWeights(i, 0) * triPlaneNormal + rayDirLocalFrameWeights(i, 1) * axisZ_i;
-        ALOG((debugDir - rayDir_i).norm() < 1e-6);
+        PGO_ALOG((debugDir - rayDir_i).norm() < 1e-6);
       }
     }
   }
@@ -293,7 +302,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
 
   primitiveTemplateMeshNormal.updateVertexPositions(primitiveTemplateMesh);
 
-  TriMeshNeighbor meshNeighbor(primitiveTemplateMesh);
+  pgo::Mesh::TriMeshNeighbor meshNeighbor(primitiveTemplateMesh);
   primitiveTemplateMeshVertexNeighboringVertices.resize(primitiveTemplateMesh.numVertices());
   for (int vi = 0; vi < (int)primitiveTemplateMeshVertexNeighboringVertices.size(); vi++) {
     primitiveTemplateMeshVertexNeighboringVertices[vi] = meshNeighbor.getVtxNearbyVertices(vi, primitiveTemplateMesh);
@@ -302,27 +311,27 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
 
 void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii, const double useHardCodedTargetEdgeLenForTri)
 {
-  ALOG(centers.rows() == primitiveType);
-  ALOG(centerRadii.size() == primitiveType);
+  PGO_ALOG(centers.rows() == primitiveType);
+  PGO_ALOG(centerRadii.size() == primitiveType);
 
   if (primitiveType == 1) {
     // sphere
     TemplateSpheres templateSpheres(200, 3800, MedialAxisRepresentation::SphereRefinementMethod::ISOTROPIC, "template-spheres");
-    // // ALOG(templateSpheres.sphereMeshes.size() == 4);
+    // // PGO_ALOG(templateSpheres.sphereMeshes.size() == 4);
     primitiveTemplateMesh = templateSpheres.sphereMeshes[3];  // radius 1.0, center (0, 0, 0)
     // TemplateSpheres templateSpheres(5, 6, MedialAxisRepresentation::SphereRefinementMethod::ISOTROPIC, "debug-spheres");
     fmt::print("templateSpheres.sphereMeshes.size() = {}\n", templateSpheres.sphereMeshes.size());
     // primitiveTemplateMesh = templateSpheres.sphereMeshes[0];  // radius 1.0, center (0, 0, 0)
 
     int numVtx = primitiveTemplateMesh.numVertices();
-    Vec3d center = ES::toVec3d(centers.row(0));
+    ES::V3d center = centers.row(0);
 
     rayDir.resize(numVtx, 3);
     rayStartPos.resize(numVtx, 3);
     for (int i = 0; i < numVtx; i++) {
-      ES::V3d p = ES::toESV3d(primitiveTemplateMesh.pos(i));
+      ES::V3d p = primitiveTemplateMesh.pos(i);
       rayDir.row(i) = p / p.norm();
-      rayStartPos.row(i) = ES::toESV3d(center);
+      rayStartPos.row(i) = center;
     }
 
     rayInitialLength.resize(numVtx);
@@ -361,7 +370,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     // numCirclePts = 20;
     // numHeightPts = 30;
 
-    primitiveTemplateMesh = createCylinderWallMesh(radius, height, numCirclePts, numHeightPts);
+    primitiveTemplateMesh = pgo::Mesh::createCylinderWallMesh(radius, height, numCirclePts, numHeightPts);
     int numVtx = primitiveTemplateMesh.numVertices();
     fmt::print("numVtx = {}\n", numVtx);
 
@@ -381,9 +390,9 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     ES::M3d R = ES::M3d::Identity() + sin(angle) * W + (1 - cos(angle)) * W * W;
 
     for (int i = 0; i < numVtx; i++) {
-      ES::V3d v = ES::toESV3d(primitiveTemplateMesh.pos(i));
+      ES::V3d v = primitiveTemplateMesh.pos(i);
       v = R * v + translate;
-      primitiveTemplateMesh.pos(i) = ES::toVec3d(v);
+      primitiveTemplateMesh.pos(i) = v;
     }
 
     rayDir.resize(numVtx, 3);
@@ -396,7 +405,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
 
     for (int i = 0; i < numVtx; i++) {
       ES::V3d seg = c2 - c1;
-      ES::V3d pos = ES::toESV3d(primitiveTemplateMesh.pos(i));
+      ES::V3d pos = primitiveTemplateMesh.pos(i);
       ES::V3d vec = pos - c1;
       double vTs_sTs = vec.dot(seg) / seg.dot(seg);
       ES::V3d dir = vec - vTs_sTs * seg;
@@ -412,7 +421,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
   }
   else {
     // prism
-    ALOG(primitiveType == 3);
+    PGO_ALOG(primitiveType == 3);
     ES::V3d c0 = centers.row(0);
     ES::V3d c1 = centers.row(1);
     ES::V3d c2 = centers.row(2);
@@ -424,7 +433,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     std::vector<int> rotAxisIDVec;
     primitiveTemplateMesh = createPrismWallMesh(c0, c1, c2, thickness, approxTargetRadius, prismVtxDri, baryCentricWeightsVec, rotAxisIDVec, useHardCodedTargetEdgeLenForTri);
 
-    ALOG(baryCentricWeightsVec.size() == rotAxisIDVec.size());
+    PGO_ALOG(baryCentricWeightsVec.size() == rotAxisIDVec.size());
 
     int numVtx = prismVtxDri.size();
 
@@ -444,7 +453,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
     for (int i = 0; i < numVtx; i++) {
       ES::V3d rayDir_i = prismVtxDri[i];
       rayDir.row(i) = rayDir_i;
-      ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
+      PGO_ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
       baryCentricWeights.row(i) = baryCentricWeightsVec[i];
 
       rayStartPos.row(i) = c0 * baryCentricWeightsVec[i](0) + c1 * baryCentricWeightsVec[i](1) + c2 * baryCentricWeightsVec[i](2);
@@ -459,7 +468,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
       // // 0 - 1, 1 - 2, 2 - 0
       // for (int k = 0; k < 3; k++) {
       //   if (isOnEdge) {
-      //     ALOG(false);
+      //     PGO_ALOG(false);
       //   }
       //   if (baryCentricWeightsVec[i](k) < 1e-6) {
       //     isOnEdge = true;
@@ -485,13 +494,13 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
         axisZ_i /= axisZ_i.norm();
 
         double debugDot = rayDir_i.dot(rayDirRotAxis_i);
-        ALOG(std::abs(rayDir_i.dot(rayDirRotAxis_i)) < 1e-6);
+        PGO_ALOG(std::abs(rayDir_i.dot(rayDirRotAxis_i)) < 1e-6);
 
         rayDirLocalFrameWeights(i, 0) = rayDir_i.dot(triPlaneNormal);
         rayDirLocalFrameWeights(i, 1) = rayDir_i.dot(axisZ_i);
 
         ES::V3d debugDir = rayDirLocalFrameWeights(i, 0) * triPlaneNormal + rayDirLocalFrameWeights(i, 1) * axisZ_i;
-        ALOG((debugDir - rayDir_i).norm() < 1e-6);
+        PGO_ALOG((debugDir - rayDir_i).norm() < 1e-6);
       }
     }
   }
@@ -505,7 +514,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
 
   primitiveTemplateMeshNormal.updateVertexPositions(primitiveTemplateMesh);
 
-  TriMeshNeighbor meshNeighbor(primitiveTemplateMesh);
+  pgo::Mesh::TriMeshNeighbor meshNeighbor(primitiveTemplateMesh);
   primitiveTemplateMeshVertexNeighboringVertices.resize(primitiveTemplateMesh.numVertices());
   for (int vi = 0; vi < (int)primitiveTemplateMeshVertexNeighboringVertices.size(); vi++) {
     primitiveTemplateMeshVertexNeighboringVertices[vi] = meshNeighbor.getVtxNearbyVertices(vi, primitiveTemplateMesh);
@@ -515,8 +524,8 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
 void TemplatePrimitive::update(const ES::MXd &centers, const ES::VXd &rayRadii)
 {
   int numVtx = primitiveTemplateMesh.numVertices();
-  ALOG(rayRadii.size() == numVtx);
-  ALOG(centers.rows() == primitiveType);
+  PGO_ALOG(rayRadii.size() == numVtx);
+  PGO_ALOG(centers.rows() == primitiveType);
 
   centersCurr = centers;
   rayCurrLength = rayRadii;
@@ -528,7 +537,7 @@ void TemplatePrimitive::update(const ES::MXd &centers, const ES::VXd &rayRadii)
     for (int i = 0; i < numVtx; i++) {
       ES::V3d rayDir_i = rayDir.row(i);
       ES::V3d posNew = maVtxPos + rayDir_i * rayRadii(i);
-      primitiveTemplateMesh.pos(i) = ES::toVec3d(posNew);
+      primitiveTemplateMesh.pos(i) = posNew;
       rayStartPos.row(i) = maVtxPos;
     }
   }
@@ -545,14 +554,14 @@ void TemplatePrimitive::update(const ES::MXd &centers, const ES::VXd &rayRadii)
     for (int i = 0; i < numVtx; i++) {
       ES::V3d rayDirInit_i = rayDirInit.row(i);
       ES::V3d rayDir_i = rotMat * rayDirInit_i;
-      ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
+      PGO_ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
       // rayDir_i /= rayDir_i.norm();
       rayDir.row(i) = rayDir_i;
 
       double w0 = baryCentricWeights(i, 0), w1 = baryCentricWeights(i, 1);
       ES::V3d centerNew = w0 * centers.row(0) + w1 * centers.row(1);
       ES::V3d posNew = centerNew + rayDir_i * rayRadii(i);
-      primitiveTemplateMesh.pos(i) = ES::toVec3d(posNew);
+      primitiveTemplateMesh.pos(i) = posNew;
       rayStartPos.row(i) = centerNew;
     }
   }
@@ -579,29 +588,29 @@ void TemplatePrimitive::update(const ES::MXd &centers, const ES::VXd &rayRadii)
         rayDir_i = triPlaneNormal * rayDirLocalFrameWeights_i(0) + axisZ_i * rayDirLocalFrameWeights_i(1);
       }
 
-      ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
+      PGO_ALOG(std::abs(rayDir_i.norm() - 1) < 1e-6);
       rayDir.row(i) = rayDir_i;
 
       double w0 = baryCentricWeights(i, 0), w1 = baryCentricWeights(i, 1), w2 = baryCentricWeights(i, 2);
       ES::V3d centerNew = w0 * centers.row(0) + w1 * centers.row(1) + w2 * centers.row(2);
       ES::V3d posNew = centerNew + rayDir_i * rayRadii(i);
-      primitiveTemplateMesh.pos(i) = ES::toVec3d(posNew);
+      primitiveTemplateMesh.pos(i) = posNew;
       rayStartPos.row(i) = centerNew;
     }
   }
 }
 
-TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V3d &e3, const double thickness, const double approxTargetRadius,
+pgo::Mesh::TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V3d &e3, const double thickness, const double approxTargetRadius,
   std::vector<ES::V3d> &prismVtxDri, std::vector<ES::V3d> &baryCentricWeights, std::vector<int> &rotAxisID, double useHardCodedTargetEdgeLenForTri)
 {
-  TriMeshGeo prismMesh;  // final output
+  pgo::Mesh::TriMeshGeo prismMesh;  // final output
   const std::string prefix = "./";
 
-  TriMeshGeo triPlane;
-  triPlane.addPos(ES::toVec3d(e1));
-  triPlane.addPos(ES::toVec3d(e2));
-  triPlane.addPos(ES::toVec3d(e3));
-  triPlane.addTri(Vec3i(0, 1, 2));
+  pgo::Mesh::TriMeshGeo triPlane;
+  triPlane.addPos(e1);
+  triPlane.addPos(e2);
+  triPlane.addPos(e3);
+  triPlane.addTri(ES::V3i(0, 1, 2));
 
   double minEdgeLength = std::min({ (e1 - e2).norm(), (e2 - e3).norm(), (e3 - e1).norm() });
   double maxEdgeLength = std::max({ (e1 - e2).norm(), (e2 - e3).norm(), (e3 - e1).norm() });
@@ -613,7 +622,7 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
     targetEdgeLen = useHardCodedTargetEdgeLenForTri;
   }
 
-  TriMeshGeo triPlaneRemesh = CGALUtilities::isotropicRemeshing(triPlane, targetEdgeLen, 3, 90);
+  pgo::Mesh::TriMeshGeo triPlaneRemesh = pgo::CGALInterface::isotropicRemeshing(triPlane, targetEdgeLen, 3, 90);
   // triPlaneRemesh.save(fmt::format("{}/triPlaneRemesh.obj", prefix));
 
   int numHeight = std::max(int(approxTargetRadius * M_PI / targetEdgeLen), 10);  // 0.01
@@ -626,21 +635,21 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
 
   int numPlanePts = triPlaneRemesh.numVertices();
   std::vector<int> boundaryVtxID;
-  LibIGLInterface::boundaryLoop(triPlaneRemesh, boundaryVtxID);
+  pgo::libiglInterface::boundaryLoop(triPlaneRemesh, boundaryVtxID);
 
   // upper and lower plane
   ES::V3d upperDir = (e2 - e1).cross(e3 - e1);
   upperDir = upperDir / upperDir.norm();
 
-  TriMeshGeo upperPlane = triPlaneRemesh;
-  TriMeshGeo lowerPlane = triPlaneRemesh;
+  pgo::Mesh::TriMeshGeo upperPlane = triPlaneRemesh;
+  pgo::Mesh::TriMeshGeo lowerPlane = triPlaneRemesh;
   std::vector<ES::V3d> baryCentricWeightsPlane;
   for (int i = 0; i < upperPlane.numVertices(); i++) {
-    ES::V3d vPos = ES::toESV3d(upperPlane.pos(i));
+    ES::V3d vPos = upperPlane.pos(i);
     ES::V3d vUp = vPos + upperDir * thickness;
     ES::V3d vLow = vPos - upperDir * thickness;
-    upperPlane.pos(i) = ES::toVec3d(vUp);
-    lowerPlane.pos(i) = ES::toVec3d(vLow);
+    upperPlane.pos(i) = vUp;
+    lowerPlane.pos(i) = vLow;
 
     // calculate barycentric weights
     ES::V3d v0 = e2 - e1, v1 = e3 - e1, v2 = vPos - e1;
@@ -651,10 +660,11 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
     double u = 1 - v - w;
     baryCentricWeightsPlane.push_back(ES::V3d(u, v, w));
   }
+
   // reverse the triangle order
   for (int t = 0; t < lowerPlane.numTriangles(); t++) {
-    Vec3i tri = lowerPlane.tri(t);
-    lowerPlane.tri(t) = Vec3i(tri[2], tri[1], tri[0]);
+    ES::V3i tri = lowerPlane.tri(t);
+    lowerPlane.tri(t) = ES::V3i(tri[2], tri[1], tri[0]);
   }
   // upperPlane.save(fmt::format("{}/upperPlane.obj", prefix));
   // lowerPlane.save(fmt::format("{}/lowerPlane.obj", prefix));
@@ -667,18 +677,18 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
   // align to e1
   for (int i = 0; i < (int)boundaryVtxID.size(); i++) {
     int id = boundaryVtxID[i];
-    if (len(triPlaneRemesh.pos(id) - ES::toVec3d(e1)) < 1e-6) {
+    if ((triPlaneRemesh.pos(id) - e1).norm() < 1e-6) {
       e1ID = id;
     }
-    if (len(triPlaneRemesh.pos(id) - ES::toVec3d(e2)) < 1e-6) {
+    if ((triPlaneRemesh.pos(id) - e2).norm() < 1e-6) {
       e2ID = id;
     }
-    if (len(triPlaneRemesh.pos(id) - ES::toVec3d(e3)) < 1e-6) {
+    if ((triPlaneRemesh.pos(id) - e3).norm() < 1e-6) {
       e3ID = id;
     }
   }
-  ALOG(e1ID != -1 && e2ID != -1 && e3ID != -1);
-  ALOG(numPlanePts * 2 == prismMesh.numVertices());
+  PGO_ALOG(e1ID != -1 && e2ID != -1 && e3ID != -1);
+  PGO_ALOG(numPlanePts * 2 == prismMesh.numVertices());
 
   for (int i = 0; i < numPlanePts; i++) {
     prismVtxDri.push_back(upperDir);
@@ -719,18 +729,18 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
       int nextID = startIDs[(id_ + 1) % 3];
 
       int upperID = bndID;
-      Vec3d upperStart = upperPlane.pos(upperID);
-      Vec3d upperNext;
+      ES::V3d upperStart = upperPlane.pos(upperID);
+      ES::V3d upperNext;
       ES::V3d rotAxis = rot2Axis[1];
       for (int i = 0; i < numHeight - 1; i++) {
         ES::V3d rotPt;
-        ES::V3d startPt = ES::toESV3d(upperStart);
-        ES::V3d center = ES::toESV3d(triPlaneRemesh.pos(upperID));
+        ES::V3d startPt = upperStart;
+        ES::V3d center = triPlaneRemesh.pos(upperID);
         rotatePoint(startPt, center, rotAxis, da, rotPt);
-        upperNext = ES::toVec3d(rotPt);
+        upperNext = rotPt;
         prismMesh.addPos(upperNext);
 
-        ES::V3d dirNewPos = ES::toESV3d(upperNext) - center;
+        ES::V3d dirNewPos = upperNext - center;
         prismVtxDri.push_back(dirNewPos / dirNewPos.norm());
 
         ES::V3d baryCentricWeightCurr;
@@ -757,8 +767,8 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
       // upper part
       int ID0 = startCyWallVtxID + n * (numHeight - 1);
       int ID1 = startCyWallVtxID + (n + 1) * (numHeight - 1);
-      prismMesh.addTri(Vec3i(upperID0, ID0, upperID1));
-      prismMesh.addTri(Vec3i(upperID1, ID0, ID1));
+      prismMesh.addTri(ES::V3i(upperID0, ID0, upperID1));
+      prismMesh.addTri(ES::V3i(upperID1, ID0, ID1));
 
       // middle
       for (int i = 0; i < numHeight - 2; i++) {
@@ -766,8 +776,8 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
         int IDi1 = startCyWallVtxID + n * (numHeight - 1) + i + 1;
         int IDi2 = startCyWallVtxID + (n + 1) * (numHeight - 1) + i;
         int IDi3 = startCyWallVtxID + (n + 1) * (numHeight - 1) + i + 1;
-        prismMesh.addTri(Vec3i(IDi0, IDi1, IDi2));
-        prismMesh.addTri(Vec3i(IDi1, IDi3, IDi2));
+        prismMesh.addTri(ES::V3i(IDi0, IDi1, IDi2));
+        prismMesh.addTri(ES::V3i(IDi1, IDi3, IDi2));
       }
 
       // lower part
@@ -775,20 +785,20 @@ TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, const ES::V
       int lowerID1 = upperID1 + numPlanePts;
       ID0 = startCyWallVtxID + n * (numHeight - 1) + numHeight - 2;
       ID1 = startCyWallVtxID + (n + 1) * (numHeight - 1) + numHeight - 2;
-      prismMesh.addTri(Vec3i(ID0, lowerID0, ID1));
-      prismMesh.addTri(Vec3i(lowerID0, lowerID1, ID1));
+      prismMesh.addTri(ES::V3i(ID0, lowerID0, ID1));
+      prismMesh.addTri(ES::V3i(lowerID0, lowerID1, ID1));
     }
     // prismMesh.save(fmt::format("{}/prismMesh.obj", prefix));
   }
 
-  ALOG(prismMesh.numVertices() == (int)prismVtxDri.size());
-  ALOG(prismMesh.numVertices() == (int)baryCentricWeights.size());
+  PGO_ALOG(prismMesh.numVertices() == (int)prismVtxDri.size());
+  PGO_ALOG(prismMesh.numVertices() == (int)baryCentricWeights.size());
   return prismMesh;
 }
 
 void rotatePoint(const ES::V3d &p, const ES::V3d &origin, const ES::V3d &rotAxism, double angle, ES::V3d &pRotated)
 {
-  ALOG(std::abs(rotAxism.norm() - 1) < 1e-6);
+  PGO_ALOG(std::abs(rotAxism.norm() - 1) < 1e-6);
   Eigen::Quaternion<double> q(std::cos(angle / 2), std::sin(angle / 2) * rotAxism[0], std::sin(angle / 2) * rotAxism[1], std::sin(angle / 2) * rotAxism[2]);
   Eigen::Quaterniond pQuatern;
   pQuatern.w() = 0;
