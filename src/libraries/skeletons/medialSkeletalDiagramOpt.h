@@ -15,5 +15,6 @@ void solveSkeleton(const pgo::Mesh::TriMeshGeo &targetMesh, const pgo::Mesh::Tri
   std::vector<pgo::EigenSupport::V3d> &finalSkeletonPoints,
   std::vector<std::pair<int, int>> &finalSkeletonEdges,
   std::vector<std::tuple<int, int, int>> &finalSkeletonTriangles,
+  const std::string &userInitFilename = "",
   std::vector<pgo::Mesh::TriMeshGeo> *finalFitMeshes = nullptr);
 }  // namespace MedialAxisRepresentation

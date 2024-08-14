@@ -10,6 +10,7 @@
 #include "tetMeshGeo.h"
 #include "tetMeshManifold.h"
 #include "tetgenInterface.h"
+#include "configFileJSON.h"
 
 #include <fmt/format.h>
 #include <CGAL/AABB_triangle_primitive.h>
@@ -1182,6 +1183,7 @@ void MedialAxisRepresentation::solveSkeleton(
   std::vector<ES::V3d> &finalSkeletonPoints,
   std::vector<std::pair<int, int>> &finalSkeletonEdges,
   std::vector<std::tuple<int, int, int>> &finalSkeletonTriangles,
+  const std::string &userInitFilename,
   std::vector<pgo::Mesh::TriMeshGeo> *finalFitMeshes)
 {
   IterationData *data = new IterationData(targetMesh, targetMeshBVTree, targetNormals,
@@ -1195,7 +1197,7 @@ void MedialAxisRepresentation::solveSkeleton(
   if constexpr (1) {
     ES::MXd vtx;
     ES::MXi tet;
-    TetGenUtilities::computeTetMesh(targetMesh, "pq1.05", vtx, tet);
+    pgo::TetgenInterface::computeTetMesh(targetMesh, "pq1.05", vtx, tet);
 
     std::vector<ES::V3d> tetVtx;
     std::vector<ES::V4i> tetEles;
@@ -1324,7 +1326,7 @@ void MedialAxisRepresentation::solveSkeleton(
   std::vector<std::pair<double, int>> distances(maVertices.size());
 
   ES::VXd vtxH;
-  libiglInterface::meanCuravtures(targetMesh, vtxH);
+  pgo::libiglInterface::meanCuravtures(targetMesh, vtxH);
 
   tbb::parallel_for(0, (int)maVertices.size(), [&](int vi) {
     auto ret = targetMeshBVTree.closestTriangleQuery(targetMesh, maVertices[vi]);
@@ -1365,7 +1367,7 @@ void MedialAxisRepresentation::solveSkeleton(
   }
 
   for (int vi = 0; vi < (int)vertexNeighboringVertices.size(); vi++) {
-    pgo::Mesh::sortAndDeduplicateWithErase(vertexNeighboringVertices[vi]);
+    pgo::BasicAlgorithms::sortAndDeduplicateWithErase(vertexNeighboringVertices[vi]);
   }
 
   std::vector<int> vertexVisited(data->medialAxisVerticesInitial.size(), 0);
@@ -1439,13 +1441,11 @@ void MedialAxisRepresentation::solveSkeleton(
 
   std::cout << "#selected vtx: " << data->finalSelectedMAVertices.size() << "/" << maVertices.size() << std::endl;
   pgo::Mesh::TriMeshGeo ss;
-
   // data->finalSelectedMAVertices = ccs[maxID];
-
-  for (int vi : data->finalSelectedMAVertices) {
-    ss.addPos(maVertices[vi]);
-  }
-  ss.save("ss.obj");
+  // for (int vi : data->finalSelectedMAVertices) {
+  //  ss.addPos(maVertices[vi]);
+  //}
+  // ss.save("ss.obj");
 
   std::vector<std::vector<double>> vertexDistances(maVertices.size());
   tbb::parallel_for(0, (int)maVertices.size(), [&](int vi) {
@@ -1458,7 +1458,7 @@ void MedialAxisRepresentation::solveSkeleton(
 
     while (!Q.empty()) {
       int curID = Q.top().second;
-      Vec3d centerCurID = maVertices[curID];
+      ES::V3d centerCurID = maVertices[curID];
 
       Q.pop();
 
@@ -1466,8 +1466,8 @@ void MedialAxisRepresentation::solveSkeleton(
         if (ntri == curID)
           continue;
 
-        Vec3d centerNextID = maVertices[ntri];
-        double weight = len(centerCurID - centerNextID);
+        ES::V3d centerNextID = maVertices[ntri];
+        double weight = (centerCurID - centerNextID).norm();
 
         // Vec3d midPt = (centerCurID + centerNextID) * 0.5;
         // auto queryRet = targetMeshBVTree.closestTriangleQuery(targetMesh, midPt);
@@ -1485,12 +1485,12 @@ void MedialAxisRepresentation::solveSkeleton(
 
   int startVtx = 0;
   std::vector<int> sampleIDs;
-  std::vector<Vec3d> userInputSamplePoints;
+  std::vector<ES::V3d> userInputSamplePoints;
 
-  if (std::filesystem::exists("user-vtx.json")) {
+  if (userInitFilename.length() > 0 && std::filesystem::exists(userInitFilename)) {
     try {
       nlohmann::json juser;
-      std::ifstream infile("user-vtx.json");
+      std::ifstream infile(userInitFilename);
       if (infile && (infile >> juser)) {
         std::vector<std::array<double, 3>> pos = juser["vtx"].get<std::vector<std::array<double, 3>>>();
         for (const auto &p : pos) {
@@ -1537,19 +1537,12 @@ void MedialAxisRepresentation::solveSkeleton(
     sampleIDs.emplace_back(sel);
   }
 
-  pgo::Mesh::TriMeshGeo rrrr;
-  for (int si = 0; si < (int)sampleIDs.size(); si++) {
-    x.segment<3>(si * 3) = ES::toESV3d(maVertices[sampleIDs[si]]);
-    rrrr.addPos(maVertices[sampleIDs[si]]);
-  }
-  rrrr.save("s.obj");
-
   data->medialAxisVerticesInitialIK = maVertices;
   data->avgLength = 0;
   int ct = 0;
   for (int ti = 0; ti < targetMesh.numTriangles(); ti++) {
     for (int j = 0; j < 3; j++) {
-      double l = len(targetMesh.pos(ti, j) - targetMesh.pos(ti, (j + 1) % 3));
+      double l = (targetMesh.pos(ti, j) - targetMesh.pos(ti, (j + 1) % 3)).norm();
       data->avgLength += l;
       ct += 1;
     }
@@ -1559,7 +1552,7 @@ void MedialAxisRepresentation::solveSkeleton(
 
   data->targetVertexWeights.assign(targetMesh.numVertices(), 0);
   for (int ti = 0; ti < targetMesh.numTriangles(); ti++) {
-    double a = getTriangleArea(targetMesh.pos(ti, 0), targetMesh.pos(ti, 1), targetMesh.pos(ti, 2));
+    double a = pgo::Mesh::getTriangleArea(targetMesh.pos(ti, 0), targetMesh.pos(ti, 1), targetMesh.pos(ti, 2));
     data->targetVertexWeights[targetMesh.triVtxID(ti, 0)] += a / 3.0;
     data->targetVertexWeights[targetMesh.triVtxID(ti, 1)] += a / 3.0;
     data->targetVertexWeights[targetMesh.triVtxID(ti, 2)] += a / 3.0;
@@ -1569,293 +1562,119 @@ void MedialAxisRepresentation::solveSkeleton(
   // debug
   pgo::Mesh::TriMeshGeo finalSkeleton;
   for (int i = 0; const auto &e : data->finalSkeletonEdges) {
-    finalSkeleton.addPos(ES::toVec3d(data->finalSkeletonPoints[e.first]));
-    finalSkeleton.addPos(ES::toVec3d(data->finalSkeletonPoints[e.second]));
-    finalSkeleton.addPos(ES::toVec3d(data->finalSkeletonPoints[e.second]) + Vec3d(1e-6));
-    finalSkeleton.addTri(Vec3i(3 * i, 3 * i + 1, 3 * i + 2));
+    finalSkeleton.addPos(data->finalSkeletonPoints[e.first]);
+    finalSkeleton.addPos(data->finalSkeletonPoints[e.second]);
+    finalSkeleton.addPos(data->finalSkeletonPoints[e.second] + pgo::asVec3d(1e-6));
+    finalSkeleton.addTri(ES::V3i(3 * i, 3 * i + 1, 3 * i + 2));
     i++;
   }
   finalSkeleton.save("rrr0.obj");
 
-  if constexpr (0) {
-    int numKMeanIter = 5;
-    for (int giter = 0; giter < nIt; giter++) {
-      for (int kmean_iter = 0; kmean_iter < numKMeanIter; kmean_iter++) {
-        if (kmean_iter == numKMeanIter - 1) {
-          data->computeUnmaskedRegion = 1;
-        }
-        else {
-          data->computeUnmaskedRegion = 0;
-        }
+  data->oldCenters.clear();
 
-        std::cout << "# points: " << x.size() / 3ull << std::endl;
-        funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
+  for (int giter = 0; giter < nIt; giter++) {
+    data->computeUnmaskedRegion = 0;
+    nlopt_opt opt = nlopt_create(NLOPT_LN_NELDERMEAD, (int)x.size());
+    nlopt_set_lower_bounds(opt, xlow.data());
+    nlopt_set_upper_bounds(opt, xhi.data());
+    nlopt_set_min_objective(opt, funcMinimizeCoverage, data);
+    nlopt_set_maxeval(opt, std::min(50, (int)x.size() * 3));
+    nlopt_set_xtol_abs(opt, xtol.data());
+    // nlopt_set_stopval(opt, 1e-2);
 
-        if (kmean_iter == numKMeanIter - 1) {
-          std::cout << "Last iteration: adding points. " << std::endl;
-          std::cout << "#existing pts: " << data->cellCenters.size() << std::endl;
-          std::cout << "#new pts: " << data->newCenters.size() << std::endl;
+    nlopt_result r;
+    double minf = 0;
+    if ((r = nlopt_optimize(opt, x.data(), &minf)) < 0) {
+      printf("nlopt failed! Error: %d\n", r);
+    }
 
-          x.resize((data->cellCenters.size() + data->newCenters.size()) * 3ull);
+    nlopt_destroy(opt);
 
-          for (int si = 0; si < (int)data->cellCenters.size(); si++) {
-            x.segment<3>(si * 3) = data->cellCenters[si];
-          }
+    data->computeUnmaskedRegion = 1;
+    funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
 
-          for (int si = 0; si < (int)data->newCenters.size(); si++) {
-            x.segment<3>(si * 3 + data->cellCenters.size() * 3) = data->newCenters[si];
-          }
-        }
-        else {
-          for (int si = 0; si < (int)data->cellCenters.size(); si++) {
-            x.segment<3>(si * 3) = data->cellCenters[si];
-          }
-        }
-      }
+    std::cout << "Last iteration: adding points. " << std::endl;
+    std::cout << "#old pts: " << data->oldCenters.size() << std::endl;
+    std::cout << "#existing pts: " << data->cellCenters.size() << std::endl;
+    std::cout << "#new pts: " << data->newCenters.size() << std::endl;
+
+    int nNewPts = (int)data->cellCenters.size() - (int)data->oldCenters.size();
+    for (int i = 0; i < nNewPts; i++) {
+      data->oldCenters.emplace_back(x[i * 3], x[i * 3 + 1], x[i * 3 + 2]);
+    }
+
+    x.resize(data->newCenters.size() * 3ull);
+    for (int si = 0; si < (int)data->newCenters.size(); si++) {
+      x.segment<3>(si * 3) = data->newCenters[si];
+    }
+
+    xtol.setConstant(x.size(), 1e-2);
+    xlow.resize(x.size());
+    xhi.resize(x.size());
+
+    for (int vi = 0; vi < (int)x.size() / 3; vi++) {
+      xlow.segment<3>(vi * 3) = targetMeshBB.bmin();
+      xhi.segment<3>(vi * 3) = targetMeshBB.bmax();
+    }
+
+    // std::cin.get();
+  }
+
+  // funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
+
+  std::vector<EK::Point_3> vtxEK;
+  for (const auto &p : data->finalSkeletonPoints) {
+    vtxEK.emplace_back(p[0], p[1], p[2]);
+  }
+
+  for (auto &e : data->finalSkeletonEdges) {
+    if (e.first > e.second) {
+      std::swap(e.first, e.second);
     }
   }
-  else if (1) {
-    data->oldCenters.clear();
 
-    for (int giter = 0; giter < nIt; giter++) {
-      data->computeUnmaskedRegion = 0;
-      nlopt_opt opt = nlopt_create(NLOPT_LN_NELDERMEAD, (int)x.size());
-      nlopt_set_lower_bounds(opt, xlow.data());
-      nlopt_set_upper_bounds(opt, xhi.data());
-      nlopt_set_min_objective(opt, funcMinimizeCoverage, data);
-      nlopt_set_maxeval(opt, std::min(50, (int)x.size() * 3));
-      nlopt_set_xtol_abs(opt, xtol.data());
-      // nlopt_set_stopval(opt, 1e-2);
+  for (auto &t : data->finalSkeletonTriangles) {
+    std::array<int, 3> tAry{ std::get<0>(t), std::get<1>(t), std::get<2>(t) };
+    std::sort(tAry.begin(), tAry.end());
 
-      nlopt_result r;
-      double minf = 0;
-      if ((r = nlopt_optimize(opt, x.data(), &minf)) < 0) {
-        printf("nlopt failed! Error: %d\n", r);
-      }
-
-      nlopt_destroy(opt);
-
-      data->computeUnmaskedRegion = 1;
-      funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
-
-      std::cout << "Last iteration: adding points. " << std::endl;
-      std::cout << "#old pts: " << data->oldCenters.size() << std::endl;
-      std::cout << "#existing pts: " << data->cellCenters.size() << std::endl;
-      std::cout << "#new pts: " << data->newCenters.size() << std::endl;
-
-      int nNewPts = (int)data->cellCenters.size() - (int)data->oldCenters.size();
-      for (int i = 0; i < nNewPts; i++) {
-        data->oldCenters.emplace_back(x[i * 3], x[i * 3 + 1], x[i * 3 + 2]);
-      }
-
-      x.resize(data->newCenters.size() * 3ull);
-      for (int si = 0; si < (int)data->newCenters.size(); si++) {
-        x.segment<3>(si * 3) = data->newCenters[si];
-      }
-
-      xtol.setConstant(x.size(), 1e-2);
-      xlow.resize(x.size());
-      xhi.resize(x.size());
-
-      for (int vi = 0; vi < (int)x.size() / 3; vi++) {
-        xlow.segment<3>(vi * 3) = ES::toESV3d(targetMeshBB.bmin());
-        xhi.segment<3>(vi * 3) = ES::toESV3d(targetMeshBB.bmax());
-      }
-
-      // std::cin.get();
-    }
-
-    // funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
-
-    std::vector<EK::Point_3> vtxEK;
-    for (const auto &p : data->finalSkeletonPoints) {
-      vtxEK.emplace_back(p[0], p[1], p[2]);
-    }
-
-    for (auto &e : data->finalSkeletonEdges) {
-      if (e.first > e.second) {
-        std::swap(e.first, e.second);
-      }
-    }
-
-    for (auto &t : data->finalSkeletonTriangles) {
-      std::array<int, 3> tAry{ std::get<0>(t), std::get<1>(t), std::get<2>(t) };
-      std::sort(tAry.begin(), tAry.end());
-
-      t = std::tuple(tAry[0], tAry[1], tAry[2]);
-    }
-
-    MedialAxisSkeletonExact maSk;
-    maSk.initFromInput(vtxEK, data->finalSkeletonEdges, data->finalSkeletonTriangles);
-    maSk.save("opt.ma.json");
-
-    while (0) {
-      bool modified = false;
-      for (const auto &pr : maSk.vertices) {
-        if (pr.second.neighboringEdges.size() == 2ull &&
-          pr.second.neighboringTriangles.size() == 0ull) {
-          EK::Point_3 p0 = pr.second.pos;
-          Vec3d pt = toVec3(p0);
-
-          bool isSample = false;
-          for (int i = 0; i < (int)data->samplePoints0.size(); i++) {
-            if (len(pt - Vec3d(data->samplePoints0[i].data())) < 1e-6) {
-              isSample = true;
-              break;
-            }
-          }
-
-          if (isSample) {
-            continue;
-          }
-
-          const auto &e0 = maSk.getE(pr.second.neighboringEdges[0]);
-          const auto &e1 = maSk.getE(pr.second.neighboringEdges[1]);
-
-          int vids[2];
-          if (e0.vidx[0] == pr.first) {
-            vids[0] = e0.vidx[1];
-          }
-          else {
-            vids[0] = e0.vidx[0];
-          }
-
-          if (e1.vidx[0] == pr.first) {
-            vids[1] = e1.vidx[1];
-          }
-          else {
-            vids[1] = e1.vidx[0];
-          }
-
-          EK::Point_3 p1 = maSk.getV(vids[0]).pos;
-          EK::Point_3 p2 = maSk.getV(vids[1]).pos;
-
-          EK::Vector_3 d0 = p1 - p0;
-          EK::Vector_3 d1 = p2 - p0;
-
-          double d0_norm = std::sqrt(CGAL::to_double(d0.squared_length()));
-          double d1_norm = std::sqrt(CGAL::to_double(d1.squared_length()));
-          double dot_d0_d1 = CGAL::to_double(CGAL::scalar_product(d0, d1));
-          double cosAngle = dot_d0_d1 / (d0_norm * d1_norm);
-
-          if (cosAngle < std::cos(170.0 / 180.0 * M_PI)) {
-            continue;
-          }
-
-          Vec3d v0 = toVec3(p1);
-          Vec3d v1 = toVec3(p2);
-
-          if (targetMeshBVTree.hasLineSegmentIntersectionExact(targetMesh, v0, v1)) {
-            continue;
-          }
-
-          if (maSk.canCollapseEdge(pr.second.neighboringEdges[0]) == false) {
-            continue;
-          }
-
-          maSk.collapseEdge(pr.second.neighboringEdges[0], p1);
-          modified = true;
-          break;
-        }
-      }
-
-      if (modified == false)
-        break;
-    }
-
-    maSk.save("opt.ma.s.json");
-
-    if (1) {
-      finalSkeletonPoints.clear();
-      finalSkeletonEdges.clear();
-      finalSkeletonTriangles.clear();
-
-      std::map<int, int> vidMap;
-      for (const auto &pr : maSk.vertices) {
-        finalSkeletonPoints.emplace_back(toVec3(pr.second.pos));
-        vidMap.emplace(pr.first, (int)finalSkeletonPoints.size() - 1);
-      }
-
-      for (const auto &pr : maSk.edges) {
-        auto it0 = vidMap.find(pr.second.vidx[0]);
-        PGO_ALOG(it0 != vidMap.end());
-
-        auto it1 = vidMap.find(pr.second.vidx[1]);
-        PGO_ALOG(it1 != vidMap.end());
-        finalSkeletonEdges.emplace_back(it0->second, it1->second);
-      }
-
-      for (const auto &pr : maSk.triangles) {
-        auto it0 = vidMap.find(pr.second.vidx[0]);
-        PGO_ALOG(it0 != vidMap.end());
-
-        auto it1 = vidMap.find(pr.second.vidx[1]);
-        PGO_ALOG(it1 != vidMap.end());
-
-        auto it2 = vidMap.find(pr.second.vidx[2]);
-        PGO_ALOG(it2 != vidMap.end());
-        finalSkeletonTriangles.emplace_back(it0->second, it1->second, it2->second);
-      }
-    }
+    t = std::tuple(tAry[0], tAry[1], tAry[2]);
   }
-  else {
-    data->oldCenters.clear();
 
-    for (int giter = 0; giter < nIt; giter++) {
-      data->computeUnmaskedRegion = 0;
-      nlopt_opt opt = nlopt_create(NLOPT_LN_NELDERMEAD, (int)x.size());
-      nlopt_set_lower_bounds(opt, xlow.data());
-      nlopt_set_upper_bounds(opt, xhi.data());
-      nlopt_set_min_objective(opt, funcMinimizeCoverage, data);
-      nlopt_set_maxeval(opt, std::min((int)x.size() * 4, 100));
-      nlopt_set_xtol_abs(opt, xtol.data());
-      // nlopt_set_stopval(opt, 1e-2);
+  SkeletonExact maSk;
+  maSk.initFromInput(vtxEK, data->finalSkeletonEdges, data->finalSkeletonTriangles);
+  maSk.save("opt.ma.json");
 
-      nlopt_result r;
-      double minf = 0;
-      if ((r = nlopt_optimize(opt, x.data(), &minf)) < 0) {
-        printf("nlopt failed! Error: %d\n", r);
-      }
-
-      nlopt_destroy(opt);
-
-      data->computeUnmaskedRegion = 1;
-      funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
-
-      std::cout << "Last iteration: adding points. " << std::endl;
-      std::cout << "#old pts: " << data->oldCenters.size() << std::endl;
-      std::cout << "#existing pts: " << data->cellCenters.size() << std::endl;
-      std::cout << "#new pts: " << data->newCenters.size() << std::endl;
-
-      x.resize((data->newCenters.size() + data->cellCenters.size()) * 3ull);
-      for (int si = 0; si < (int)data->cellCenters.size(); si++) {
-        x.segment<3>(si * 3) = data->cellCenters[si];
-      }
-
-      for (int si = 0; si < (int)data->newCenters.size(); si++) {
-        x.segment<3>((si + (int)data->cellCenters.size()) * 3) = data->newCenters[si];
-      }
-
-      xtol.setConstant(x.size(), 1e-2);
-      xlow.resize(x.size());
-      xhi.resize(x.size());
-
-      for (int vi = 0; vi < (int)x.size() / 3; vi++) {
-        xlow.segment<3>(vi * 3) = ES::toESV3d(targetMeshBB.bmin());
-        xhi.segment<3>(vi * 3) = ES::toESV3d(targetMeshBB.bmax());
-      }
-
-      // std::cin.get();
-    }
-
-    // funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
-
+  if constexpr (1) {
     finalSkeletonPoints.clear();
-    for (const auto &p : data->finalSkeletonPoints) {
-      finalSkeletonPoints.emplace_back(CGAL::to_double(p[0]), CGAL::to_double(p[1]), CGAL::to_double(p[2]));
+    finalSkeletonEdges.clear();
+    finalSkeletonTriangles.clear();
+
+    std::map<int, int> vidMap;
+    for (const auto &pr : maSk.vertices) {
+      finalSkeletonPoints.emplace_back(toVec3(pr.second.pos));
+      vidMap.emplace(pr.first, (int)finalSkeletonPoints.size() - 1);
     }
 
-    finalSkeletonEdges = data->finalSkeletonEdges;
+    for (const auto &pr : maSk.edges) {
+      auto it0 = vidMap.find(pr.second.vidx[0]);
+      PGO_ALOG(it0 != vidMap.end());
+
+      auto it1 = vidMap.find(pr.second.vidx[1]);
+      PGO_ALOG(it1 != vidMap.end());
+      finalSkeletonEdges.emplace_back(it0->second, it1->second);
+    }
+
+    for (const auto &pr : maSk.triangles) {
+      auto it0 = vidMap.find(pr.second.vidx[0]);
+      PGO_ALOG(it0 != vidMap.end());
+
+      auto it1 = vidMap.find(pr.second.vidx[1]);
+      PGO_ALOG(it1 != vidMap.end());
+
+      auto it2 = vidMap.find(pr.second.vidx[2]);
+      PGO_ALOG(it2 != vidMap.end());
+      finalSkeletonTriangles.emplace_back(it0->second, it1->second, it2->second);
+    }
   }
 
   if (finalFitMeshes) {
