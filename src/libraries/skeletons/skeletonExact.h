@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CGALTemplateUtilities.h"
+#include "cgalTemplateUtilities.h"
 
 #include "EigenSupport.h"
 #include "triKey.h"

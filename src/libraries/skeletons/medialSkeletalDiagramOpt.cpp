@@ -11,6 +11,7 @@
 #include "tetMeshManifold.h"
 #include "tetgenInterface.h"
 #include "configFileJSON.h"
+#include "libiglInterface.h"
 
 #include <fmt/format.h>
 #include <CGAL/AABB_triangle_primitive.h>

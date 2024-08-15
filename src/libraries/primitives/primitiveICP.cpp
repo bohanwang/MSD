@@ -2,14 +2,13 @@
 #include "templatePrimitive.h"
 
 #include "pgoLogging.h"
-#include "CGALUtilities.h"
+#include "cgalInterface.h"
 #include "libiglInterface.h"
 #include "EigenSupport.h"
 #include "EigenMKLPardisoSupport.h"
 #include "geometryQuery.h"
 #include "createTriMesh.h"
 #include "triMeshNeighbor.h"
-#include "minimizeEnergy.h"
 #include "predicates.h"
 
 #include <tbb/parallel_for.h>

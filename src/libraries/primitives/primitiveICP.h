@@ -2,12 +2,11 @@
 
 #include "templatePrimitive.h"
 
-#include "CGALUtilities.h"
-#include "createTriMesh.h"
 #include "triMeshGeo.h"
 #include "boundingVolumeTree.h"
 #include "triMeshPseudoNormal.h"
-#include "libiglInterface.h"
+
+#include <memory>
 
 namespace MedialAxisRepresentation
 {

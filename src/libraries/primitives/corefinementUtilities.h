@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CGALBasic.h"
-#include "CGALTemplateUtilities.h"
+#include "cgalBasic.h"
+#include "cgalTemplateUtilities.h"
 
 #include "EigenSupport.h"
 #include "createTriMesh.h"
@@ -235,7 +235,7 @@ inline pgo::Mesh::TriMeshGeo dumpSeg(const K::Segment_2 &seg)
     p[j][2] = 0;
   }
 
-  return pgo::Mesh::createSingleTriangleMesh(p[0], p[1], p[0] + ES::V3d(1e-4));
+  return pgo::Mesh::createSingleTriangleMesh(p[0], p[1], p[0] + pgo::asVec3d(1e-4));
 }
 
 inline pgo::Mesh::TriMeshGeo dumpSeg(const K::Segment_3 &seg)
@@ -247,7 +247,7 @@ inline pgo::Mesh::TriMeshGeo dumpSeg(const K::Segment_3 &seg)
     p[j][2] = tod(seg[j][2]);
   }
 
-  return pgo::Mesh::createSingleTriangleMesh(p[0], p[1], p[0] + ES::V3d(1e-4));
+  return pgo::Mesh::createSingleTriangleMesh(p[0], p[1], p[0] + pgo::asVec3d(1e-4));
 }
 
 struct Patch2D
