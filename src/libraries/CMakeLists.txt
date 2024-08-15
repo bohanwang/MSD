@@ -1,46 +1,46 @@
 set(MSD_LIBRARY_PRIMITIVES_SRC
-  corefinementUtilities.cpp
-  corefinementUtilities.h
+  primitives/corefinementUtilities.cpp
+  primitives/corefinementUtilities.h
 
-  cylinderCorefinement.cpp
-  cylinderCorefinement.h
+  primitives/cylinderCorefinement.cpp
+  primitives/cylinderCorefinement.h
 
-  primitiveICP.cpp
-  primitiveICP.h
+  primitives/primitiveICP.cpp
+  primitives/primitiveICP.h
 
-  prismCorefinement.cpp
-  prismCorefinement.h
+  primitives/prismCorefinement.cpp
+  primitives/prismCorefinement.h
 
-  sphereCorefinement.cpp
-  sphereCorefinement.h
+  primitives/sphereCorefinement.cpp
+  primitives/sphereCorefinement.h
 
-  templatePrimitive.cpp
-  templatePrimitive.h
+  primitives/templatePrimitive.cpp
+  primitives/templatePrimitive.h
 
-  templateSpheres.cpp
-  templateSpheres.h
+  primitives/templateSpheres.cpp
+  primitives/templateSpheres.h
 )
 
 set(MSD_LIBRARY_SKELETON_SRC
-  skeletonExact.h
-  skeletonExact.cpp
+  skeletons/skeletonExact.h
+  skeletons/skeletonExact.cpp
 
-  medialSkeletalDiagramOpt.h
-  medialSkeletalDiagramOpt.cpp
+  skeletons/medialSkeletalDiagramOpt.h
+  skeletons/medialSkeletalDiagramOpt.cpp
 )
 
 set(MSD_LIBRARY_SRC)
 
 foreach(src ${MSD_LIBRARY_PRIMITIVES_SRC})
-  list(APPEND MSD_LIBRARY_SRC "primitives/${src}")
+  list(APPEND MSD_LIBRARY_SRC "${src}")
 endforeach()
 
 foreach(src ${MSD_LIBRARY_SKELETON_SRC})
-  list(APPEND MSD_LIBRARY_SRC "skeletons/${src}")
+  list(APPEND MSD_LIBRARY_SRC "${src}")
 endforeach()
 
 add_library(MSD_lib STATIC ${MSD_LIBRARY_SRC})
-target_link_libraries(MSD_lib PUBLIC cgalInterface libiglInterface geogramInterface tetgenInterface configFileJSON nonlinearOptimization)
+target_link_libraries(MSD_lib PUBLIC cgalInterface libiglInterface geogramInterface tetgenInterface configFileJSON nonlinearOptimization nlopt)
 target_include_directories(MSD_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("primitives" FILES ${MSD_LIBRARY_PRIMITIVES_SRC})
