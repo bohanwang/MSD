@@ -1,5 +1,5 @@
 #include "medialSkeletalDiagramOpt.h"
-#include "voronoiUtilities2.h"
+#include "skeletonRVD.h"
 
 #include "primitives/primitiveICP.h"
 
@@ -243,7 +243,7 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     itData->targetMeshSmall, itData->targetMeshBVTreeSmall, itData->samplePoints,
     itData->medialAxisVerticesCur, itData->medialAxisFacetsCur,
     itData->finalSkeletonPoints, itData->finalSkeletonEdges, itData->finalSkeletonTriangles,
-    &itData->cellCenters, saveDir, false);
+    &itData->cellCenters);
 
   // to increase stability,
   // we can redo rvd
@@ -334,7 +334,7 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
       itData->targetMeshSmall, itData->targetMeshBVTreeSmall, itData->samplePoints,
       itData->medialAxisVerticesCur, itData->medialAxisFacetsCur,
       itData->finalSkeletonPoints, itData->finalSkeletonEdges, itData->finalSkeletonTriangles,
-      nullptr, saveDir, false);
+      nullptr);
   }
 
   if constexpr (1) {

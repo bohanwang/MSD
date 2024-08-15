@@ -37,7 +37,7 @@ struct PrimitiveICPSolverParameters
   // int numCylinderSlices = 40; // for radius 0.01
   int numCylinderSlices = 10;  // for radius 0.01
   // SolverType solType = LINEARSOLVER;
-  SolverType solType = PDSOLVER;
+  SolverType solType = SolverType::PDSOLVER;
   bool useCorefine = true;
   bool useEdgeOnlyMRF = true;
   bool verbose = false;

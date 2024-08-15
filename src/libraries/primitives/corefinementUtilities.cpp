@@ -1315,10 +1315,10 @@ bool MedialAxisRepresentation::collapseColinearVertices(Poly &finalMesh, int &it
     } while (g1 != g0);
 
     if (found_g && found_h) {
-      ES::V3i p0 = toVec3(h0->vertex()->point());
-      ES::V3i p1 = toVec3(g0->vertex()->point());
-      ES::V3i p2 = toVec3(h1->vertex()->point());
-      ES::V3i p3 = toVec3(g1->vertex()->point());
+      ES::V3d p0 = toVec3(h0->vertex()->point());
+      ES::V3d p1 = toVec3(g0->vertex()->point());
+      ES::V3d p2 = toVec3(h1->vertex()->point());
+      ES::V3d p3 = toVec3(g1->vertex()->point());
 
       if constexpr (debug) {
         pgo::Mesh::TriMeshGeo mm;
@@ -1337,10 +1337,10 @@ bool MedialAxisRepresentation::collapseColinearVertices(Poly &finalMesh, int &it
         std::cout << "pt: " << pt->vertex()->degree() << std::endl;
         std::cout << "qb: " << qb->vertex()->degree() << std::endl;
 
-        ES::V3i q = toVec3(pq->vertex()->point());
-        ES::V3i p = toVec3(qp->vertex()->point());
-        ES::V3i t = toVec3(pt->vertex()->point());
-        ES::V3i b = toVec3(qb->vertex()->point());
+        ES::V3d q = toVec3(pq->vertex()->point());
+        ES::V3d p = toVec3(qp->vertex()->point());
+        ES::V3d t = toVec3(pt->vertex()->point());
+        ES::V3d b = toVec3(qb->vertex()->point());
 
         mm.addMesh(pgo::Mesh::createSingleTriangleMesh(p, q, p + pgo::asVec3d(1e-8)));
         mm.addMesh(pgo::Mesh::createSingleTriangleMesh(p, t, p + pgo::asVec3d(1e-8)));

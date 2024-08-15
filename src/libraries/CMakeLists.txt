@@ -27,6 +27,9 @@ set(MSD_LIBRARY_SKELETON_SRC
 
   skeletons/medialSkeletalDiagramOpt.h
   skeletons/medialSkeletalDiagramOpt.cpp
+
+  skeletons/skeletonRVD.h
+  skeletons/skeletonRVD.cpp
 )
 
 set(MSD_LIBRARY_SRC)

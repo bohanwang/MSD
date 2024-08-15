@@ -178,7 +178,7 @@ PrimitiveICPSolver::PrimitiveICPSolver(const ES::MXd &centers, const ES::VXd &ce
   pd->primitiveMeshPseudoNormal.buildPseudoNormals(pd->primitiveMeshCurr);
 
   // Smoothness
-  BasicUtilities::triMeshGeoToMatrices(primitiveTemp->primitiveTemplateMesh, pd->primitiveRestPos, pd->primitiveRestTri);
+  pgo::Mesh::triMeshGeoToMatrices(primitiveTemp->primitiveTemplateMesh, pd->primitiveRestPos, pd->primitiveRestTri);
   pd->primitiveCurrPos = pd->primitiveRestPos;
 
   pgo::libiglInterface::graphLaplacianMatrix(pd->primitiveRestTri, pd->graphL);
