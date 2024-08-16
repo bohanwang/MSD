@@ -194,7 +194,7 @@ PrimitiveICPSolver::~PrimitiveICPSolver()
 }
 
 int PrimitiveICPSolver::sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo &targetMesh, const pgo::Mesh::TriMeshBVTree &targetMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &targetMeshNormals,
-  const std::string &prefix, pgo::Mesh::TriMeshGeo &meshOut)
+  pgo::Mesh::TriMeshGeo &meshOut)
 {
   PGO_ALOG(centers.rows() == primitiveType);
   PGO_ALOG(centers.cols() == 3);
@@ -254,8 +254,8 @@ int PrimitiveICPSolver::sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo 
 
   // params.expansionRadius = minDMax;
   // fmt::print("expansion radius: {}\n", params.expansionRadius);
+  // pd->primitiveMeshCurr.save(fmt::format("{}/init.obj", prefix));
 
-  pd->primitiveMeshCurr.save(fmt::format("{}/init.obj", prefix));
   int niter = params.maxNumIter;
   if (centers.rows() == 1)
     niter = 3;
@@ -425,10 +425,10 @@ int PrimitiveICPSolver::sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo 
       pd->update(primitiveTemp);
     }
 
-    if (params.verbose) {
-      // save
-      pd->primitiveMeshCurr.save(fmt::format("{}/iter{}.obj", prefix, iter));
-    }
+    // if (params.verbose) {
+    //   // save
+    //   pd->primitiveMeshCurr.save(fmt::format("{}/iter{}.obj", prefix, iter));
+    // }
   }
   // return
   meshOut = pd->primitiveMeshCurr;

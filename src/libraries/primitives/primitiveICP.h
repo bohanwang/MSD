@@ -51,7 +51,7 @@ public:
   int sim(const pgo::EigenSupport::MXd &centers, const pgo::Mesh::TriMeshGeo &targetMesh,
     const pgo::Mesh::TriMeshBVTree &targetMeshBVTree,
     const pgo::Mesh::TriMeshPseudoNormal &targetMeshNormals,
-    const std::string &prefix, pgo::Mesh::TriMeshGeo &meshOut);
+    pgo::Mesh::TriMeshGeo &meshOut);
 
   // protected:
   PrimitiveICPSolverParameters params;
