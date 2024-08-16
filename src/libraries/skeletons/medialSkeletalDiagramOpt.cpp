@@ -521,9 +521,8 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     // std::ofstream(fmt::format("{}/curr.txt", saveDir)) << centers(0, 0) << ',' << centers(0, 1) << ',' << centers(0, 2) << std::endl;
 
     pgo::Mesh::TriMeshGeo fittingMesh;
-    std::string prefix = "tt";
     MedialAxisRepresentation::PrimitiveICPSolver solver(centers, centerRadii, primitiveICPParams, 1);
-    int solverRet = solver.sim(centers, itData->targetMesh, itData->targetMeshBVTree, itData->targetNormals, prefix, fittingMesh);
+    int solverRet = solver.sim(centers, itData->targetMesh, itData->targetMeshBVTree, itData->targetNormals, fittingMesh);
     if (solverRet != 0) {
       isAllSucceed = false;
       continue;
@@ -648,9 +647,8 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     primitiveICPParams.contactCoeff = 1e4;
 
     pgo::Mesh::TriMeshGeo fittingMesh;
-    std::string prefix = "tt";
     MedialAxisRepresentation::PrimitiveICPSolver solver(centers, centerRadii, primitiveICPParams, 2);
-    int solverRet = solver.sim(centers, itData->targetMesh, itData->targetMeshBVTree, itData->targetNormals, prefix, fittingMesh);
+    int solverRet = solver.sim(centers, itData->targetMesh, itData->targetMeshBVTree, itData->targetNormals, fittingMesh);
     if (solverRet != 0) {
       isAllSucceed = false;
       continue;
@@ -841,9 +839,8 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     primitiveICPParams.contactCoeff = 1e4;
 
     pgo::Mesh::TriMeshGeo fittingMesh;
-    std::string prefix = "tt";
     MedialAxisRepresentation::PrimitiveICPSolver solver(centers, centerRadii, primitiveICPParams, 3);
-    int solverRet = solver.sim(centers, itData->targetMesh, itData->targetMeshBVTree, itData->targetNormals, prefix, fittingMesh);
+    int solverRet = solver.sim(centers, itData->targetMesh, itData->targetMeshBVTree, itData->targetNormals, fittingMesh);
     if (solverRet != 0) {
       isAllSucceed = false;
       continue;

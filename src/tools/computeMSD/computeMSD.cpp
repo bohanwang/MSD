@@ -13,6 +13,7 @@
 #include "boundingVolumeTree.h"
 #include "EigenSupport.h"
 #include "geometryQuery.h"
+#include "createTriMesh.h"
 
 #include <nlohmann/json.hpp>
 
@@ -409,7 +410,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
     for (int j = 0; j < nSamples; j++) {
       double ratio = double(j) / double(nSamples - 1);
       ES::V3d p = centers.row(0) * (1 - ratio) + centers.row(1) * ratio;
-      auto ret = inputMeshBVTree.closestTriangleQuery(inputMesh, Vec3d(p.data()));
+      auto ret = inputMeshBVTree.closestTriangleQuery(inputMesh, p);
       // avgR = std::min(avgR, std::sqrt(ret.dist2));
 
       if (j == 0)
@@ -517,7 +518,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
     double avgR = 1e100;
     for (int j = 0; j < 3; j++) {
       ES::V3d p = centers.row(j);
-      auto ret = inputMeshBVTree.closestTriangleQuery(inputMesh, Vec3d(p.data()));
+      auto ret = inputMeshBVTree.closestTriangleQuery(inputMesh, p);
       // avgR = std::min(avgR, std::sqrt(ret.dist2));
       centerRadii(j) = std::sqrt(ret.dist2);
     }
@@ -536,7 +537,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
 
     pgo::Mesh::TriMeshGeo fittingMesh;
     MedialAxisRepresentation::PrimitiveICPSolver solver(centers, centerRadii, primitiveICPParams, numCenters);
-    int ret = solver.sim(centers, inputMesh, inputMeshBVTree, inputMeshNormal, prefix, fittingMesh);
+    int ret = solver.sim(centers, inputMesh, inputMeshBVTree, inputMeshNormal, fittingMesh);
 
     if (ret == 0) {
       finalMeshes.addMesh(fittingMesh);
