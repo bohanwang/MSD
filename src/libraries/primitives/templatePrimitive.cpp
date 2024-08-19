@@ -298,7 +298,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
   rayCurrLength = rayInitialLength;
 
   primitiveTemplateMeshNormal.buildPseudoNormals(primitiveTemplateMesh);
-  primitiveTemplateMesh.save("t.obj");
+  // primitiveTemplateMesh.save("t.obj");
 
   primitiveTemplateMeshNormal.updateVertexPositions(primitiveTemplateMesh);
 
@@ -510,7 +510,7 @@ void TemplatePrimitive::init(const ES::MXd &centers, const ES::VXd &centerRadii,
   rayCurrLength = rayInitialLength;
 
   primitiveTemplateMeshNormal.buildPseudoNormals(primitiveTemplateMesh);
-  primitiveTemplateMesh.save("t.obj");
+  // primitiveTemplateMesh.save("t.obj");
 
   primitiveTemplateMeshNormal.updateVertexPositions(primitiveTemplateMesh);
 

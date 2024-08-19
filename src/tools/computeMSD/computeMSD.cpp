@@ -36,26 +36,32 @@ int main(int argc, char *argv[])
 
   program.add_argument("-i", "--input-mesh")
     .help("Input surface mesh filename")
-    .required();
+    .required()
+    .metavar("PATH");
+  ;
 
   program.add_argument("-a", "--input-ma")
     .help("Input surface mesh medial axis filename")
-    .required();
+    .required()
+    .metavar("PATH");
 
   program.add_argument("-n", "--num-vertices")
     .help("The number of skeleton vertices requested")
     .required()
-    .scan<'i', int>();
+    .scan<'i', int>()
+    .metavar("INT");
 
   program.add_argument("-e", "--num-additional-solve")
     .help("The number of additional solving after the first phase. By default (=1), it does not do additional solving.")
     .default_value(1)
-    .scan<'i', int>();
+    .scan<'i', int>()
+    .metavar("INT");
 
-  program.add_argument("-N", "-num-additional-vertices")
+  program.add_argument("-N", "--num-additional-vertices")
     .help("The number of additional vertices to be added per iteration during additional solving after the first phase.")
     .default_value(1)
-    .scan<'i', int>();
+    .scan<'i', int>()
+    .metavar("INT");
 
   try {
     program.parse_args(argc, argv);  // Example: ./main --color orange
@@ -68,9 +74,9 @@ int main(int argc, char *argv[])
 
   std::string maFilename = program.get<std::string>("--input-ma");
   std::string inputMeshFilename = program.get<std::string>("--input-mesh");
-  int numTargetPoints = program.get<int>("");
-  int numIter = program.get<int>("");
-  int numAddPtsPerIter = program.get<int>("");
+  int numTargetPoints = program.get<int>("--num-vertices");
+  int numIter = program.get<int>("--num-additional-solve");
+  int numAddPtsPerIter = program.get<int>("--num-additional-vertices");
 
   if constexpr (1) {
     std::ofstream cfile("cmd.txt");
@@ -96,10 +102,8 @@ int main(int argc, char *argv[])
   });
 
   pgo::Mesh::TriMeshGeo inputMesh;
-  std::string filename = argv[1];
-
-  if (inputMesh.load(filename) != true) {
-    std::cerr << "Cannot load " << filename << std::endl;
+  if (inputMesh.load(inputMeshFilename) != true) {
+    std::cerr << "Cannot load " << inputMeshFilename << std::endl;
     return 1;
   }
 

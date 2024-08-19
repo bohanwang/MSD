@@ -2072,11 +2072,11 @@ void MedialAxisRepresentation::computeRVD_internal_Dijkstras_withTri_refine_with
         pathAccDistances.emplace_back((triangleCenters[path[pi]] - triangleCenters[path[pi - 1]]).norm() + pathAccDistances[pi - 1]);
       }
 
-      pgo::Mesh::TriMeshGeo zzzz1;
-      for (int pi = 0; pi < (int)path.size() - 1; pi++) {
-        zzzz1.addMesh(pgo::Mesh::createSingleTriangleMesh(triangleCenters[path[pi]], triangleCenters[path[pi + 1]], triangleCenters[path[pi]] + pgo::asVec3d(1e-5)));
-      }
-      zzzz1.save("zzzz1.obj");
+      // pgo::Mesh::TriMeshGeo zzzz1;
+      // for (int pi = 0; pi < (int)path.size() - 1; pi++) {
+      //   zzzz1.addMesh(pgo::Mesh::createSingleTriangleMesh(triangleCenters[path[pi]], triangleCenters[path[pi + 1]], triangleCenters[path[pi]] + pgo::asVec3d(1e-5)));
+      // }
+      // zzzz1.save("zzzz1.obj");
 
       for (auto it = edgeQ.begin(); it != edgeQ.end();) {
         ES::V3d p = triangleCenters[path[it->first]];
@@ -2499,25 +2499,25 @@ void MedialAxisRepresentation::computeRVD_internal_Dijkstras_withTri_refine_with
   }
   fmt::print("after remove finalSkeletonEdges.size() = {}\n", finalSkeletonEdges.size());
 
-  pgo::Mesh::TriMeshGeo finalSkeleton;
-  for (int i = 0; const auto &e : finalSkeletonEdges) {
-    finalSkeleton.addPos(finalSkeletonPoints[e.first]);
-    finalSkeleton.addPos(finalSkeletonPoints[e.second]);
-    finalSkeleton.addPos(finalSkeletonPoints[e.second] + pgo::asVec3d(1e-6));
-    finalSkeleton.addTri(ES::V3i(3 * i, 3 * i + 1, 3 * i + 2));
-    i++;
-  }
-  finalSkeleton.save("rrr.obj");
+  // pgo::Mesh::TriMeshGeo finalSkeleton;
+  // for (int i = 0; const auto &e : finalSkeletonEdges) {
+  //   finalSkeleton.addPos(finalSkeletonPoints[e.first]);
+  //   finalSkeleton.addPos(finalSkeletonPoints[e.second]);
+  //   finalSkeleton.addPos(finalSkeletonPoints[e.second] + pgo::asVec3d(1e-6));
+  //   finalSkeleton.addTri(ES::V3i(3 * i, 3 * i + 1, 3 * i + 2));
+  //   i++;
+  // }
+  // finalSkeleton.save("rrr.obj");
 
-  pgo::Mesh::TriMeshGeo finalSkeletonTri;
-  for (int t = 0; const auto &tri : finalSkeletonTriangles) {
-    finalSkeletonTri.addPos(finalSkeletonPoints[std::get<0>(tri)]);
-    finalSkeletonTri.addPos(finalSkeletonPoints[std::get<1>(tri)]);
-    finalSkeletonTri.addPos(finalSkeletonPoints[std::get<2>(tri)]);
-    finalSkeletonTri.addTri(ES::V3i(3 * t, 3 * t + 1, 3 * t + 2));
-    t++;
-  }
-  finalSkeletonTri.save("rrrTri.obj");
+  // pgo::Mesh::TriMeshGeo finalSkeletonTri;
+  // for (int t = 0; const auto &tri : finalSkeletonTriangles) {
+  //   finalSkeletonTri.addPos(finalSkeletonPoints[std::get<0>(tri)]);
+  //   finalSkeletonTri.addPos(finalSkeletonPoints[std::get<1>(tri)]);
+  //   finalSkeletonTri.addPos(finalSkeletonPoints[std::get<2>(tri)]);
+  //   finalSkeletonTri.addTri(ES::V3i(3 * t, 3 * t + 1, 3 * t + 2));
+  //   t++;
+  // }
+  // finalSkeletonTri.save("rrrTri.obj");
 
   // save simplified medial axis
 

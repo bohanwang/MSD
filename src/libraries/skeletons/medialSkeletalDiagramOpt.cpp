@@ -1535,6 +1535,10 @@ void MedialAxisRepresentation::solveSkeleton(
     sampleIDs.emplace_back(sel);
   }
 
+  for (int si = 0; si < (int)sampleIDs.size(); si++) {
+    x.segment<3>(si * 3) = maVertices[sampleIDs[si]];
+  }
+
   data->medialAxisVerticesInitialIK = maVertices;
   data->avgLength = 0;
   int ct = 0;
@@ -1558,15 +1562,15 @@ void MedialAxisRepresentation::solveSkeleton(
 
   funcMinimizeCoverage(x.size(), x.data(), nullptr, data);
   // debug
-  pgo::Mesh::TriMeshGeo finalSkeleton;
-  for (int i = 0; const auto &e : data->finalSkeletonEdges) {
-    finalSkeleton.addPos(data->finalSkeletonPoints[e.first]);
-    finalSkeleton.addPos(data->finalSkeletonPoints[e.second]);
-    finalSkeleton.addPos(data->finalSkeletonPoints[e.second] + pgo::asVec3d(1e-6));
-    finalSkeleton.addTri(ES::V3i(3 * i, 3 * i + 1, 3 * i + 2));
-    i++;
-  }
-  finalSkeleton.save("rrr0.obj");
+  // pgo::Mesh::TriMeshGeo finalSkeleton;
+  // for (int i = 0; const auto &e : data->finalSkeletonEdges) {
+  //  finalSkeleton.addPos(data->finalSkeletonPoints[e.first]);
+  //  finalSkeleton.addPos(data->finalSkeletonPoints[e.second]);
+  //  finalSkeleton.addPos(data->finalSkeletonPoints[e.second] + pgo::asVec3d(1e-6));
+  //  finalSkeleton.addTri(ES::V3i(3 * i, 3 * i + 1, 3 * i + 2));
+  //  i++;
+  //}
+  // finalSkeleton.save("rrr0.obj");
 
   data->oldCenters.clear();
 
