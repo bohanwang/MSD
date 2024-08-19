@@ -19,6 +19,8 @@
 
 #include <tbb/parallel_for.h>
 
+#include <argparse/argparse.hpp>
+
 #include <iostream>
 
 static void skeletonPostProcessing(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::TriMeshBVTree &inputMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &inputMeshNormal, bool removePointOnLine,
@@ -30,27 +32,62 @@ int main(int argc, char *argv[])
   namespace ES = pgo::EigenSupport;
   using namespace MedialAxisRepresentation;
 
-  if (argc != 5) {
-    std::cerr << argv[0] << " <mesh> <#pt> <#iter> <#+pt>" << std::endl;
+  argparse::ArgumentParser program("Compute Medial Skeletal Diagram");
+
+  program.add_argument("-i", "--input-mesh")
+    .help("Input surface mesh filename")
+    .required();
+
+  program.add_argument("-a", "--input-ma")
+    .help("Input surface mesh medial axis filename")
+    .required();
+
+  program.add_argument("-n", "--num-vertices")
+    .help("The number of skeleton vertices requested")
+    .required()
+    .scan<'i', int>();
+
+  program.add_argument("-e", "--num-additional-solve")
+    .help("The number of additional solving after the first phase. By default (=1), it does not do additional solving.")
+    .default_value(1)
+    .scan<'i', int>();
+
+  program.add_argument("-N", "-num-additional-vertices")
+    .help("The number of additional vertices to be added per iteration during additional solving after the first phase.")
+    .default_value(1)
+    .scan<'i', int>();
+
+  try {
+    program.parse_args(argc, argv);  // Example: ./main --color orange
+  }
+  catch (const std::exception &err) {
+    std::cerr << err.what() << std::endl;
+    std::cerr << program;
     return 1;
   }
 
-  std::ofstream("cmd.txt") << argv[0] << ' ' << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4];
+  std::string maFilename = program.get<std::string>("--input-ma");
+  std::string inputMeshFilename = program.get<std::string>("--input-mesh");
+  int numTargetPoints = program.get<int>("");
+  int numIter = program.get<int>("");
+  int numAddPtsPerIter = program.get<int>("");
+
+  if constexpr (1) {
+    std::ofstream cfile("cmd.txt");
+    for (int i = 0; i < argc; i++) {
+      cfile << argv[i] << ' ';
+    }
+  }
 
   pgo::Logging::init();
   pgo::Mesh::initPredicates();
   pgo::GeogramInterface::initGEO();
 
-  std::cout << "Filename: " << argv[1] << '\n'
-            << "#tgt points: " << argv[2] << '\n'
-            << "#iter: " << argv[3] << '\n'
-            << "#added pt: " << argv[4] << std::endl;
-
-  std::string maInitialFilename;
-
-  int numTargetPoints = std::stoi(argv[2]);
-  int numIter = std::stoi(argv[3]);
-  int numAddPtsPerIter = std::stoi(argv[4]);
+  std::cout << "Surface Mesh Filename: " << inputMeshFilename << '\n'
+            << "MA Filename: " << maFilename << '\n'
+            << "#tgt points: " << numTargetPoints << '\n'
+            << "#iter: " << numIter << '\n'
+            << "#added pt: " << numAddPtsPerIter << std::endl;
 
   std::set_terminate([]() {
     std::cout << "Unhandled exception\n"
@@ -92,7 +129,7 @@ int main(int argc, char *argv[])
   else {
     solveSkeleton(inputMesh, inputMeshBVTree, inputMeshNormal,
       inputMesh, inputMeshBVTree, inputMeshNormal,
-      maInitialFilename, numTargetPoints, numIter, numAddPtsPerIter,
+      maFilename, numTargetPoints, numIter, numAddPtsPerIter,
       skeletonVtx, skeletonEdges, skeletonTriangles);
   }
 
