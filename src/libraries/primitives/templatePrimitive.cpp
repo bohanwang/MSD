@@ -697,7 +697,7 @@ pgo::Mesh::TriMeshGeo createPrismWallMesh(const ES::V3d &e1, const ES::V3d &e2, 
     prismVtxDri.push_back(-1 * upperDir);
   }
 
-  prismMesh.save("r.obj");
+  // prismMesh.save("r.obj");
 
   baryCentricWeights.insert(baryCentricWeights.end(), baryCentricWeightsPlane.begin(), baryCentricWeightsPlane.end());
   baryCentricWeights.insert(baryCentricWeights.end(), baryCentricWeightsPlane.begin(), baryCentricWeightsPlane.end());

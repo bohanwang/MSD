@@ -26,6 +26,9 @@
 static void skeletonPostProcessing(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::TriMeshBVTree &inputMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &inputMeshNormal, bool removePointOnLine,
   std::vector<pgo::EigenSupport::V3d> &finalSkeletonPoints, std::vector<std::pair<int, int>> &finalSkeletonEdges, std::vector<std::tuple<int, int, int>> &finalSkeletonTriangles,
   std::map<int, int> &vidMap, std::map<int, std::pair<int, int>> &edgeMap, std::map<int, std::tuple<int, int, int>> &triMap);
+static void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::TriMeshBVTree &inputMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &inputMeshNormal,
+  const std::vector<pgo::EigenSupport::V3d> &skeletonPoints, std::vector<std::pair<int, int>> finalSkeletonEdges, std::vector<std::tuple<int, int, int>> finalSkeletonTriangles,
+  const std::map<int, int> &vidMap, const std::map<int, std::pair<int, int>> &edgeMap, const std::map<int, std::tuple<int, int, int>> &triMap, int doCoref);
 
 int main(int argc, char *argv[])
 {
@@ -62,6 +65,16 @@ int main(int argc, char *argv[])
     .default_value(1)
     .scan<'i', int>()
     .metavar("INT");
+
+  program.add_argument("-f", "--post-fitting")
+    .help("Perform post fitting in the end.")
+    .default_value(true)
+    .implicit_value(true);
+
+  program.add_argument("-r", "--post-refinement")
+    .help("Perform post refinement in the end.")
+    .default_value(true)
+    .implicit_value(true);
 
   try {
     program.parse_args(argc, argv);  // Example: ./main --color orange
@@ -144,6 +157,26 @@ int main(int argc, char *argv[])
   skeletonPostProcessing(inputMesh, inputMeshBVTree, inputMeshNormal, true,
     skeletonVtx, skeletonEdges, skeletonTriangles,
     vidMap, edgeMap, triMap);
+
+  int doCoref = 1;
+  int doFitting = 1;
+  if (program.get<bool>("--post-fitting")) {
+    doFitting = 1;
+  }
+  else {
+    doFitting = 0;
+  }
+
+  if (program.get<bool>("--post-refinement")) {
+    doCoref = 1;
+  }
+  else {
+    doCoref = 0;
+  }
+
+  primitiveFitting(inputMesh, inputMeshBVTree, inputMeshNormal,
+    skeletonVtx, skeletonEdges, skeletonTriangles,
+    vidMap, edgeMap, triMap, doCoref);
 
   return 0;
 }
@@ -280,7 +313,6 @@ void skeletonPostProcessing(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::M
     }  // end if
 
     maPost.save("opt.ma.post.json");
-    maPost.saveDisplayMesh("post-sk.obj");
   }
 
   if constexpr (1) {
@@ -289,6 +321,7 @@ void skeletonPostProcessing(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::M
     std::vector<std::tuple<int, int, int>> st;
 
     maPost.exportToArray(vtxEK, se, st, vidMap, edgeMap, triMap);
+    maPost.saveDisplayMesh("post-sk.obj");
 
     skeletonPoints.clear();
     skeletonPoints.resize(vtxEK.size());
@@ -298,6 +331,7 @@ void skeletonPostProcessing(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::M
       skeletonPoints[i][2] = CGAL::to_double(vtxEK[i][2]);
     }
 
+    finalSkeletonPoints = skeletonPoints;
     finalSkeletonEdges = se;
     finalSkeletonTriangles = st;
 
@@ -320,7 +354,7 @@ void skeletonPostProcessing(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::M
 
 void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::TriMeshBVTree &inputMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &inputMeshNormal,
   const std::vector<pgo::EigenSupport::V3d> &skeletonPoints, std::vector<std::pair<int, int>> finalSkeletonEdges, std::vector<std::tuple<int, int, int>> finalSkeletonTriangles,
-  const std::map<int, int> &vidMap, const std::map<int, std::pair<int, int>> &edgeMap, const std::map<int, std::tuple<int, int, int>> &triMap)
+  const std::map<int, int> &vidMap, const std::map<int, std::pair<int, int>> &edgeMap, const std::map<int, std::tuple<int, int, int>> &triMap, int doCoref)
 {
   namespace ES = pgo::EigenSupport;
   using namespace MedialAxisRepresentation;
@@ -375,7 +409,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
   int vEnd = (int)skeletonPoints.size();
   int eEnd = (int)finalSkeletonEdges.size();
   int tEnd = (int)finalSkeletonTriangles.size();
-  int coref = 1;
+  int coref = doCoref;
 
   std::cout << vEnd << ',' << eEnd << ',' << tEnd << std::endl;
 
@@ -414,7 +448,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
       fittingMesh.save("last-icp.obj");
       std::ofstream("last-icp.txt") << skeletonPoints[vi][0] << ',' << skeletonPoints[vi][1] << ',' << skeletonPoints[vi][2];
 
-      fittingMesh.save(fmt::format("fit.1-v{:04d}.obj", vi));
+      fittingMesh.save(fmt::format("fit-v{:04d}.obj", vi));
 
       if (coref) {
         pgo::Mesh::TriMeshGeo meshOut;
@@ -442,6 +476,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
     if (inputMeshBVTree.hasLineSegmentIntersectionExact(inputMesh, p0, p1)) {
       std::cout << "skeleton intersected with surface. Skip" << std::endl;
       pgo::Mesh::createSingleTriangleMesh(p0, p1, p0 + pgo::asVec3d(1e-6)).save("inter.obj");
+      std::cin.get();
       continue;
     }
 
@@ -500,11 +535,11 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
         << centers_v[0][0] << ',' << centers_v[0][1] << ',' << centers_v[0][2] << '\n'
         << centers_v[1][0] << ',' << centers_v[1][1] << ',' << centers_v[1][2];
 
-      fittingMesh.save(fmt::format("fit.1-e{:04d}.obj", ei));
+      // fittingMesh.save(fmt::format("fit-e{:04d}.obj", ei));
 
       pgo::Mesh::TriMeshGeo mOut;
       fillCylinder(fittingMesh, centers_v, mOut);
-      mOut.save(fmt::format("fit.1-e{:04d}.obj", ei));
+      mOut.save(fmt::format("fit-e{:04d}.obj", ei));
 
       if (coref) {
         pgo::Mesh::TriMeshGeo meshOut;
@@ -595,11 +630,11 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
         << centers_v[1][0] << ',' << centers_v[1][1] << ',' << centers_v[1][2] << '\n'
         << centers_v[2][0] << ',' << centers_v[2][1] << ',' << centers_v[2][2];
 
-      fittingMesh.save(fmt::format("fit.1-t{:04d}.obj", ti));
+      // fittingMesh.save(fmt::format("fit-t{:04d}.obj", ti));
 
       pgo::Mesh::TriMeshGeo mOut;
       fillPrism(fittingMesh, centers_v, mOut);
-      mOut.save(fmt::format("fit.1-t{:04d}.obj", ti));
+      mOut.save(fmt::format("fit-t{:04d}.obj", ti));
 
       if (coref) {
         pgo::Mesh::TriMeshGeo meshOut;

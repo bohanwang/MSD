@@ -227,17 +227,6 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
   itData->finalSkeletonEdges.clear();
   itData->finalSkeletonTriangles.clear();
   itData->finalFitMeshes.clear();
-
-  // computeRVD_internal_Dijkstras_withTri(itData->targetMesh, itData->targetMeshBVTree,
-  //   itData->targetMeshSmall, itData->targetMeshBVTreeSmall, itData->samplePoints,
-  //   itData->medialAxisVerticesCur, itData->medialAxisFacetsCur,
-  //   itData->finalSkeletonPoints, itData->finalSkeletonEdges, itData->finalSkeletonTriangles,
-  //   &itData->cellCenters);
-
-  // std::string saveDir = fmt::format("{}/iter{:04d}", itData->savePath, itData->iter);
-  // std::filesystem::create_directory(saveDir.c_str());
-  // aa.save(fmt::format("{}/iter{:04d}/pts.obj", itData->savePath, itData->iter));
-
   itData->samplePoints0 = itData->samplePoints;
 
   computeRVD_internal_Dijkstras_withTri_refine_withEdge(itData->targetMesh, itData->targetMeshBVTree,
@@ -247,8 +236,8 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     &itData->cellCenters);
 
   // to increase stability,
-  // we can redo rvd
-  if constexpr (0) {
+  // we can redo RVD
+  if constexpr (1) {
     itData->medialAxisVerticesCur = itData->medialAxisVerticesInitial;
     itData->medialAxisFacetsCur = itData->medialAxisFacetsInitial;
 
