@@ -9,20 +9,36 @@ This repository contains the implementation code for our conditionally accepted 
 
 1. Download [libpgo](https://github.com/bohanwang/libpgo), a C++ library with Python bindings for **P**hysically-based simulation, **G**eometric shape modeling, and **O**ptimization. Follow the instructions in the original [repo](https://github.com/bohanwang/libpgo) to get ``libpgo``.
 
-```bash
-```
+    ```bash
+    git clone git@github.com:bohanwang/libpgo.git
+    ```
 
 2. Clone this repo into the ``{libpgo_ROOT}/projects`` folder.
 
-```bash
-```
+    ```bash
+    cd libpgo/projects
+    git clone git@github.com:bohanwang/MSD.git
+    ```
 
-## Run Examples
+3. Install prerequisites. Please refer to **Prerequisites** for ``libpgo``.
 
-## WIP Features
+4. Build the repo.
+    ```bash
+    cd ../
+    cmake -B build -S . -DPGO_ENABLE_FULL=1 -DPGO_USE_MKL=1 -DPGO_BUILD_SUBPROJECTS=1
+    cmake --build build --target computeMSD --parallel
+    ```
+5. The built executable will be installed into ``build/bin/``.
 
-- [ ] xxx
-- [ ] xxx
+Note that we have only tested it on Windows and Ubuntu 24.04.
+
+## Examples
+We provide a few examples in the ``examples`` folder. Please check them out there.
+
+## TODO
+
+- [ ] add support to user-defined medial axis
+- [ ] release more examples
 
 ## License
 
