@@ -413,7 +413,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
 
   std::cout << vEnd << ',' << eEnd << ',' << tEnd << std::endl;
 
-  for (int vi = 5; vi < vEnd; vi++) {
+  for (int vi = 0; vi < vEnd; vi++) {
     int numCenters = 1;
     ES::MXd centers(numCenters, 3);
     ES::VXd centerRadii(numCenters);
@@ -434,7 +434,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
     primitiveICPParams.useCorefine = false;
     primitiveICPParams.verbose = false;
     primitiveICPParams.maxPDNumIter = 15;
-    primitiveICPParams.maxNumIter = nIter;
+    primitiveICPParams.maxNumIter = 10;
     primitiveICPParams.smoothnessCoeff = sc;
     primitiveICPParams.expansionCoeff = 2;
     primitiveICPParams.contactCoeff = 1e4;

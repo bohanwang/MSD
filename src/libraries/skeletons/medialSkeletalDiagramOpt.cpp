@@ -502,7 +502,7 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     primitiveICPParams.useCorefine = false;
     primitiveICPParams.verbose = false;
     primitiveICPParams.maxPDNumIter = 10;
-    primitiveICPParams.maxNumIter = maxIter;
+    primitiveICPParams.maxNumIter = maxIter / 2;
     primitiveICPParams.smoothnessCoeff = sc;
     primitiveICPParams.expansionCoeff = 2;
     primitiveICPParams.contactCoeff = 1e4;
@@ -1565,7 +1565,7 @@ void MedialAxisRepresentation::solveSkeleton(
 
   for (int giter = 0; giter < nIt; giter++) {
     data->computeUnmaskedRegion = 0;
-    nlopt_opt opt = nlopt_create(NLOPT_LN_NELDERMEAD, (int)x.size());
+    nlopt_opt opt = nlopt_create(NLOPT_LN_BOBYQA, (int)x.size());
     nlopt_set_lower_bounds(opt, xlow.data());
     nlopt_set_upper_bounds(opt, xhi.data());
     nlopt_set_min_objective(opt, funcMinimizeCoverage, data);
