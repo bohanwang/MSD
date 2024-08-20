@@ -434,7 +434,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
     primitiveICPParams.useCorefine = false;
     primitiveICPParams.verbose = false;
     primitiveICPParams.maxPDNumIter = 15;
-    primitiveICPParams.maxNumIter = 10;
+    primitiveICPParams.maxNumIter = 15;
     primitiveICPParams.smoothnessCoeff = sc;
     primitiveICPParams.expansionCoeff = 2;
     primitiveICPParams.contactCoeff = 1e4;
