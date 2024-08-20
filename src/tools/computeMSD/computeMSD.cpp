@@ -68,12 +68,12 @@ int main(int argc, char *argv[])
 
   program.add_argument("-f", "--post-fitting")
     .help("Perform post fitting in the end.")
-    .default_value(true)
+    .default_value(false)
     .implicit_value(true);
 
   program.add_argument("-r", "--post-refinement")
     .help("Perform post refinement in the end.")
-    .default_value(true)
+    .default_value(false)
     .implicit_value(true);
 
   try {
@@ -413,7 +413,7 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
 
   std::cout << vEnd << ',' << eEnd << ',' << tEnd << std::endl;
 
-  for (int vi = 0; vi < vEnd; vi++) {
+  for (int vi = 5; vi < vEnd; vi++) {
     int numCenters = 1;
     ES::MXd centers(numCenters, 3);
     ES::VXd centerRadii(numCenters);

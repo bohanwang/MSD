@@ -257,9 +257,6 @@ int PrimitiveICPSolver::sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo 
   // pd->primitiveMeshCurr.save(fmt::format("{}/init.obj", prefix));
 
   int niter = params.maxNumIter;
-  if (centers.rows() == 1)
-    niter = 3;
-
   for (int iter = 0; iter < niter; iter++) {
     // double smoothnessCoeff = 1e-1, expansionCoeff = 1.0, contactCoeff = 1.0; // sphere
     // double smoothnessCoeff = 1.0, expansionCoeff = 1.0, contactCoeff = 1.0; // cylinder
