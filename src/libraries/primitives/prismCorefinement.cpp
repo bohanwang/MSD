@@ -346,7 +346,7 @@ int MedialAxisRepresentation::corefinePrismMeshWithTarget(const pgo::Mesh::TriMe
 {
   // double maxConfidentDist = 1e-3;
   // double maxAllowedRadiusDist = 0.1;
-  constexpr int dumpMesh = 1;
+  constexpr int dumpMesh = 0;
   constexpr int removeSphereMeshTopology = 1;
   constexpr int triangulationOnly = 0;
 

@@ -24,7 +24,6 @@ void vertexProjection(Poly &finalMesh, const pgo::Mesh::TriMeshGeo &targetMesh, 
 {
   pgo::Mesh::TriMeshNeighbor targetMeshNeighbor(targetMesh);
 
-#if 1
   for (auto it = finalMesh.vertices_begin(); it != finalMesh.vertices_end(); ++it) {
     K::Point_3 pEK = it->point();
     const K::Point_3 &projPtEK = centerER;
@@ -53,7 +52,7 @@ void vertexProjection(Poly &finalMesh, const pgo::Mesh::TriMeshGeo &targetMesh, 
       it->point() = projPtEK + dir * (len + maxAllowedRadiusDist) / len;
     }
 
-#  if 1
+#if 1
     int newVID = it->id();
     auto vid_itt = vtxIDNew2Old.find(newVID);
     if (vid_itt != vtxIDNew2Old.end()) {
@@ -137,217 +136,8 @@ void vertexProjection(Poly &finalMesh, const pgo::Mesh::TriMeshGeo &targetMesh, 
         }
       }
     }
-#  endif
-  }
-#else
-  std::vector<double> dirInputLength(finalMesh.size_of_vertices());
-  std::vector<double> dirInitialLength(finalMesh.size_of_vertices());
-  std::vector<double> dirMaxLength(finalMesh.size_of_vertices());
-  std::vector<int> isFixed(finalMesh.size_of_vertices(), 1);
-  std::vector<K::Point_3> pts(finalMesh.size_of_vertices());
-
-  for (auto it = finalMesh.vertices_begin(); it != finalMesh.vertices_end(); ++it) {
-    const K::Point_3 &p = it->point();
-    pts[it->id()] = it->point();
-
-    K::Vector_3 dir = p - centerER;
-    double len = std::sqrt(CGAL::to_double(dir.squared_length()));
-    dirInputLength[it->id()] = len;
-
-    K::Ray_3 ray(centerER, p);
-    const auto ret = targetMeshBVTreeExact.first_intersection(ray);
-    if (ret) {
-      K::Point_3 closestPt = boost::get<K::Point_3>(ret->first);
-      K::Vector_3 dirClosest = closestPt - centerER;
-      double curLength = std::sqrt(CGAL::to_double(dirClosest.squared_length()));
-      dirMaxLength[it->id()] = curLength;
-
-      if (curLength <= len + maxAllowedRadiusDist) {
-        dirInitialLength[it->id()] = curLength;
-      }
-      else {
-        dirInitialLength[it->id()] = len + maxAllowedRadiusDist;
-        isFixed[it->id()] = 0;
-      }
-
-      int newVID = it->id();
-      auto vid_itt = vtxIDNew2Old.find(newVID);
-      if (vid_itt != vtxIDNew2Old.end()) {
-        int oldVID = vid_itt->second;
-        auto vit = vertexIsOnTargetMesh.find(oldVID);
-        if (vit != vertexIsOnTargetMesh.end()) {
-          if (vit->second[0] == 0) {
-            K::Point_3 ptgt = toP3_EK(targetMesh.pos(vit->second[1]));
-
-            const auto &triIDs = targetMeshNeighbor.getVtxNearbyTriangles(vit->second[1]);
-            K::FT minAngle = 10000;
-            for (int tri : triIDs) {
-              K::Plane_3 triPlane(toP3_EK(targetMesh.pos(tri, 0)), toP3_EK(targetMesh.pos(tri, 1)), toP3_EK(targetMesh.pos(tri, 2)));
-              K::Point_3 origin = ptgt;
-              K::Point_3 v0 = centerER;
-              K::Point_3 v1 = triPlane.projection(v0);
-              K::FT a = CGAL::approximate_angle(v0, origin, v1);
-              minAngle = CGAL::min(a, minAngle);
-            }
-
-            if (minAngle < 20) {
-              std::cout << "tgt vtx: Min angle too small a=" << CGAL::to_double(minAngle) << std::endl;
-              isFixed[it->id()] = 0;
-            }
-            else {
-              std::cout << "tgt vtx: Min angle ok a=" << CGAL::to_double(minAngle) << std::endl;
-              isFixed[it->id()] = 1;
-            }
-
-            K::Vector_3 dir = ptgt - centerER;
-            dirInitialLength[it->id()] = std::sqrt(CGAL::to_double(dir.squared_length()));
-          }
-          else if (vit->second[0] == 1) {
-            std::cout << "Edge point." << std::endl;
-            int vids[2] = {
-              selectedEdges[vit->second[1]].first,
-              selectedEdges[vit->second[1]].second
-            };
-
-            K::FT minAngle = 10000;
-            for (int ci = 0; ci < 2; ci++) {
-              const auto &triIDs = targetMeshNeighbor.getVtxNearbyTriangles(vids[ci]);
-              for (int tri : triIDs) {
-                // if the selected edge is shared by the triangle
-                const ES::V3i &triVtxIDs = targetMesh.tri(tri);
-                if ((vids[0] == triVtxIDs[0] || vids[0] == triVtxIDs[1] || vids[0] == triVtxIDs[2]) &&
-                  (vids[1] == triVtxIDs[0] || vids[1] == triVtxIDs[1] || vids[1] == triVtxIDs[2])) {
-                  K::Plane_3 triPlane(toP3_EK(targetMesh.pos(tri, 0)), toP3_EK(targetMesh.pos(tri, 1)), toP3_EK(targetMesh.pos(tri, 2)));
-                  K::Point_3 origin = closestPt;
-                  K::Point_3 v0 = centerER;
-                  K::Point_3 v1 = triPlane.projection(v0);
-                  K::FT a = CGAL::approximate_angle(v0, origin, v1);
-                  minAngle = CGAL::min(a, minAngle);
-                }
-              }
-            }
-
-            if (minAngle < 20) {
-              std::cout << "tgt vtx: Min angle too small a=" << CGAL::to_double(minAngle) << std::endl;
-              isFixed[it->id()] = 0;
-            }
-            else {
-              std::cout << "tgt edge: Min angle ok a=" << CGAL::to_double(minAngle) << std::endl;
-              isFixed[it->id()] = 1;
-            }
-
-            K::Vector_3 dir = closestPt - centerER;
-            double lenNew = std::sqrt(CGAL::to_double(dir.squared_length()));
-            dirInitialLength[it->id()] = lenNew;
-          }
-        }
-      }
-    }
-    else {
-      throw std::runtime_error("impossible");
-    }
-  }
-
-  namespace ES = ES;
-  std::vector<ES::TripletD> entries;
-  for (auto it = finalMesh.vertices_begin(); it != finalMesh.vertices_end(); ++it) {
-    Poly::Halfedge_handle h0 = it->halfedge();
-    Poly::Halfedge_handle h1 = it->halfedge();
-
-    double acc = 0;
-    do {
-      K::Vector_3 dir = h1->opposite()->vertex()->point() - it->point();
-      double len = std::sqrt(CGAL::to_double(dir.squared_length()));
-      len = std::max(len, 1e-4);
-
-      double w = 1.0 / len;
-      entries.emplace_back((int)it->id(), (int)h1->opposite()->vertex()->id(), -w);
-      acc += w;
-
-      h1 = h1->next()->opposite();
-    } while (h1 != h0);
-
-    entries.emplace_back((int)it->id(), (int)it->id(), acc);
-  }
-
-  ES::SpMatD L(finalMesh.size_of_vertices(), finalMesh.size_of_vertices());
-  L.setFromTriplets(entries.begin(), entries.end());
-
-  std::shared_ptr<VegaFEM::PredefinedPotentialEnergies::QuadraticPotentialEnergy> energy =
-    std::make_shared<VegaFEM::PredefinedPotentialEnergies::QuadraticPotentialEnergy>(L);
-
-  ES::VXd xlow(finalMesh.size_of_vertices());
-  ES::VXd xhi(finalMesh.size_of_vertices());
-  ES::VXd x(finalMesh.size_of_vertices());
-
-  pgo::Mesh::TriMeshGeo mama;
-  for (int i = 0; i < (int)dirInputLength.size(); i++) {
-    double lo, hi;
-
-    if (dirInputLength[i] <= dirMaxLength[i]) {
-      lo = dirInputLength[i];
-      hi = dirMaxLength[i];
-    }
-    else {
-      lo = dirMaxLength[i];
-      hi = dirMaxLength[i];
-    }
-
-    if (isFixed[i]) {
-      x[i] = dirInitialLength[i];
-      xlow[i] = dirInitialLength[i];
-      xhi[i] = dirInitialLength[i];
-      mama.addPos(toVec3(pts[i]));
-    }
-    else {
-      x[i] = dirInitialLength[i];
-      xlow[i] = lo;
-      xhi[i] = hi;
-    }
-  }
-  mama.save("zzzzz.obj");
-
-  ES::VXd lambda, g;
-  int ret = VegaFEM::NonlinearOptimization::EnergyOptimizer::minimizeUsingKnitro(x, energy,
-    xlow, xhi, lambda, g, nullptr, ES::VXd(), ES::VXd(), 100, 1e-6, 0, "config.opt");
-  std::cout << "Solver ret: " << ret << std::endl;
-
-  for (auto it = finalMesh.vertices_begin(); it != finalMesh.vertices_end(); ++it) {
-    const K::Point_3 p = it->point();
-    K::Vector_3 dir = p - centerER;
-    double len = std::sqrt(CGAL::to_double(dir.squared_length()));
-    double ratio = x[it->id()] / len;
-
-    it->point() = centerER + dir * ratio;
-
-    int newVID = it->id();
-    auto vid_itt = vtxIDNew2Old.find(newVID);
-    if (vid_itt != vtxIDNew2Old.end()) {
-      int oldVID = vid_itt->second;
-      auto vit = vertexIsOnTargetMesh.find(oldVID);
-      if (vit != vertexIsOnTargetMesh.end()) {
-        if (vit->second[0] == 0) {
-          ES::V3dp0 = targetMesh.pos(vit->second[1]);
-          it->point() = K::Point_3(p0[0], p0[1], p0[2]);
-        }
-        else if (vit->second[0] == 1) {
-          std::cout << "Edge point." << std::endl;
-
-          K::Ray_3 ray(centerER, p);
-          const auto ret = targetMeshBVTreeExact.first_intersection(ray);
-          if (ret) {
-            K::Point_3 closestPt = boost::get<K::Point_3>(ret->first);
-            K::Vector_3 dirClosest = closestPt - centerER;
-            double curLength = std::sqrt(CGAL::to_double(dirClosest.squared_length()));
-            if (curLength <= len + maxAllowedRadiusDist) {
-              it->point() = closestPt;
-            }
-          }
-        }
-      }
-    }
-  }
 #endif
+  }
 }
 
 }  // namespace MedialAxisRepresentation
@@ -356,7 +146,7 @@ int MedialAxisRepresentation::corefineSphereMeshWithTarget(const pgo::Mesh::TriM
   const pgo::Mesh::TriMeshGeo &targetMesh, const pgo::Mesh::TriMeshBVTree &targetMeshBVTree, const pgo::Mesh::TriMeshPseudoNormal &targetMeshNormals,
   double maxConfidentDist, double maxAllowedRadiusDist, pgo::Mesh::TriMeshGeo &meshOut, const char *filename)
 {
-  constexpr int dumpMesh = 1;
+  constexpr int dumpMesh = 0;
 
   std::vector<int> targetMeshChoosenVertex(targetMesh.numVertices(), 0);
   tbb::enumerable_thread_specific<std::vector<std::tuple<double, double, int>>> closestDistDueryStackTLS;
