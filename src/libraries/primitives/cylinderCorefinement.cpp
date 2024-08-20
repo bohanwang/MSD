@@ -248,7 +248,7 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const pgo::Mesh::Tr
 {
   // double maxConfidentDist = 1e-3;
   // double maxAllowedRadiusDist = 0.1;
-  constexpr int dumpMesh = 1;
+  constexpr int dumpMesh = 0;
   constexpr int removeSphereMeshTopology = 1;
   constexpr int triangulationOnly = 0;
 
@@ -658,23 +658,23 @@ int MedialAxisRepresentation::corefineCylinderMeshWithTarget(const pgo::Mesh::Tr
     cylinderMeshProjectedTriangles[ti].projID = selID;
   }  // );
 
-  pgo::Mesh::TriMeshGeo mm;
-  for (int ti = 0; ti < (int)cylinderMeshProjectedTriangles.size(); ti++) {
-    int projID = cylinderMeshProjectedTriangles[ti].projID;
-    IK::Point_3 p[3];
-    for (int j = 0; j < 3; j++) {
-      p[j] = pt2D_to_pt3D(cylinderMeshProjectedTriangles[ti].triangle2D[projID][j], ti);
-    }
+  // pgo::Mesh::TriMeshGeo mm;
+  // for (int ti = 0; ti < (int)cylinderMeshProjectedTriangles.size(); ti++) {
+  //   int projID = cylinderMeshProjectedTriangles[ti].projID;
+  //   IK::Point_3 p[3];
+  //   for (int j = 0; j < 3; j++) {
+  //     p[j] = pt2D_to_pt3D(cylinderMeshProjectedTriangles[ti].triangle2D[projID][j], ti);
+  //   }
 
-    ES::V3d pV3d[3] = {
-      ES::V3d(tod(p[0][0]), tod(p[0][1]), tod(p[0][2])),
-      ES::V3d(tod(p[1][0]), tod(p[1][1]), tod(p[1][2])),
-      ES::V3d(tod(p[2][0]), tod(p[2][1]), tod(p[2][2])),
-    };
+  //   ES::V3d pV3d[3] = {
+  //     ES::V3d(tod(p[0][0]), tod(p[0][1]), tod(p[0][2])),
+  //     ES::V3d(tod(p[1][0]), tod(p[1][1]), tod(p[1][2])),
+  //     ES::V3d(tod(p[2][0]), tod(p[2][1]), tod(p[2][2])),
+  //   };
 
-    mm.addMesh(pgo::Mesh::createSingleTriangleMesh(pV3d[0], pV3d[1], pV3d[2]));
-  }
-  mm.save("rarrr.obj");
+  //   mm.addMesh(pgo::Mesh::createSingleTriangleMesh(pV3d[0], pV3d[1], pV3d[2]));
+  // }
+  // mm.save("rarrr.obj");
 
   // build cutting mesh
   std::vector<K::Segment_2> cuttingSegments[2];
