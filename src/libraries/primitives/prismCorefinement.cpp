@@ -3385,7 +3385,7 @@ int MedialAxisRepresentation::corefinePrismMeshWithTarget(const pgo::Mesh::TriMe
   else {
     pgo::Mesh::TriMeshGeo meshOut;
     pgo::CGALInterface::polyhedron2TriangleMesh(finalMesh, meshOut);
-    meshOut.save("rzr2.obj");
+    // meshOut.save("rzr2.obj");
 
     pgo::Mesh::TriMeshNeighbor m(meshOut);
     std::cout << "Is triangle mesh: " << finalMesh.is_pure_triangle() << std::endl;

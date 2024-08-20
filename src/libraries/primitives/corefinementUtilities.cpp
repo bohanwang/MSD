@@ -2025,7 +2025,7 @@ bool MedialAxisRepresentation::triangulateMesh(Poly &finalMesh)
 
   std::list<Poly::Halfedge_handle> currentFacets;
 
-  std::ofstream("tri0.off") << finalMesh;
+  // std::ofstream("tri0.off") << finalMesh;
 
   std::unordered_set<std::pair<int, int>, ES::IntPairHash, ES::IntPairEqual> visitedEdges;
   int baseVtxID = (int)finalMesh.size_of_vertices();
