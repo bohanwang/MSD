@@ -94,9 +94,16 @@ struct PrimitiveICPSolverData
     //   ES::EigenPardisoSupport::ReorderingType::NESTED_DISSECTION, 0, 0, 0, 0, 0, 0);
     // solver->analyze(sys);
 
+    // REAL_UNSYM
+
+    solver = std::make_shared<ES::EigenMKLPardisoSupport>(sys, ES::EigenMKLPardisoSupport::MatrixType::REAL_SYM_INDEFINITE,
+      ES::EigenMKLPardisoSupport::ReorderingType::NESTED_DISSECTION, 0, 0, 2, 0, 0, 0);
+
+    solver->analyze(sys);
+
     // debug eigen solver
-    eigenSolver = std::make_shared<ES::SymSolver>();
-    eigenSolver->analyzePattern(sys);
+    // eigenSolver = std::make_shared<ES::SymSolver>();
+    // eigenSolver->analyzePattern(sys);
   }
 
   // update according to primiviteDDelta
@@ -157,7 +164,7 @@ struct PrimitiveICPSolverData
 
   // Solver
   std::shared_ptr<ES::EigenMKLPardisoSupport> solver;
-  std::shared_ptr<ES::SymSolver> eigenSolver;
+  // std::shared_ptr<ES::SymSolver> eigenSolver;
 
   int numVtx;
 };
@@ -329,9 +336,13 @@ int PrimitiveICPSolver::sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo 
       // double solveResNorm = solveRes.norm();
       // fmt::print("Solve Res Norm: {}\n", solveResNorm);
 
-      pd->eigenSolver->factorize(pd->sys);
-      pd->primitiveDDelta.setZero();
-      pd->primitiveDDelta = pd->eigenSolver->solve(pd->rhs);
+      
+      pd->solver->factorize(pd->sys);
+      pd->solver->solve(pd->sys, pd->primitiveDDelta.data(), pd->rhs.data(), 1);
+
+      // pd->eigenSolver->factorize(pd->sys);
+      // pd->primitiveDDelta.setZero();
+      // pd->primitiveDDelta = pd->eigenSolver->solve(pd->rhs);
 
       // update
       pd->update(primitiveTemp);
@@ -394,11 +405,17 @@ int PrimitiveICPSolver::sim(const ES::MXd &centers, const pgo::Mesh::TriMeshGeo 
         pd->rhs += smoothnessCoeff * pd->bSmoothness;
 
         pd->rhs *= -1;
-        pd->eigenSolver->factorize(pd->sys);
-        pd->primitiveDDelta.setZero();
-        pd->primitiveDDelta = pd->eigenSolver->solve(pd->rhs);
+
+        // eigen solver
+        // pd->eigenSolver->factorize(pd->sys);        
+        // pd->primitiveDDelta.setZero();
+        // pd->primitiveDDelta = pd->eigenSolver->solve(pd->rhs);
+
+        pd->solver->factorize(pd->sys);
+        pd->solver->solve(pd->sys, pd->primitiveDDelta.data(), pd->rhs.data(), 1);
 
         double maxDiff = (pd->primitiveDDelta - dlast).cwiseAbs().maxCoeff();
+
         if (params.verbose) {
           fmt::print("  |dx|_inf={}\n", maxDiff);
           std::cout << std::flush;
