@@ -451,11 +451,17 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
       fittingMesh.save(fmt::format("fit-v{:04d}.obj", vi));
 
       if (coref) {
+        std::string filename = fmt::format("coref-v{:04d}.obj", vi);
         pgo::Mesh::TriMeshGeo meshOut;
-        corefineSphereMeshWithTarget(fittingMesh, skeletonPoints[vi].data(), inputMesh,
-          inputMeshBVTree, inputMeshNormal, 1e-3, dilateSize, meshOut);
 
-        meshOut.save(fmt::format("coref-v{:04d}.obj", vi));
+        if (std::filesystem::exists(filename) && meshOut.load(filename)) {
+        }
+        else {
+          corefineSphereMeshWithTarget(fittingMesh, skeletonPoints[vi].data(), inputMesh,
+            inputMeshBVTree, inputMeshNormal, 1e-3, dilateSize, meshOut);
+
+          meshOut.save(filename);
+        }
         corefFinalMeshes.addMesh(meshOut);
       }
     }
@@ -543,10 +549,16 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
 
       if (coref) {
         pgo::Mesh::TriMeshGeo meshOut;
-        corefineCylinderMeshWithTarget(fittingMesh, centers_v, inputMesh,
-          inputMeshBVTree, inputMeshNormal, 1e-3, dilateSize, meshOut);
+        std::string filename = fmt::format("coref-e{:04d}.obj", ei);
 
-        meshOut.save(fmt::format("coref-e{:04d}.obj", ei));
+        if (std::filesystem::exists(filename) && meshOut.load(filename)) {
+        }
+        else {
+          corefineCylinderMeshWithTarget(fittingMesh, centers_v, inputMesh,
+            inputMeshBVTree, inputMeshNormal, 1e-3, dilateSize, meshOut);
+
+          meshOut.save(filename);
+        }
 
         corefFinalMeshes.addMesh(meshOut);
 
@@ -638,9 +650,15 @@ void primitiveFitting(const pgo::Mesh::TriMeshGeo &inputMesh, const pgo::Mesh::T
 
       if (coref) {
         pgo::Mesh::TriMeshGeo meshOut;
-        corefinePrismMeshWithTarget(fittingMesh, centers_v, inputMesh,
-          inputMeshBVTree, inputMeshNormal, 1e-3, dilateSize, meshOut);
-        meshOut.save(fmt::format("coref-t{:04d}.obj", ti));
+        std::string filename = fmt::format("coref-t{:04d}.obj", ti);
+
+        if (std::filesystem::exists(filename) && meshOut.load(filename)) {
+        }
+        else {
+          corefinePrismMeshWithTarget(fittingMesh, centers_v, inputMesh,
+            inputMeshBVTree, inputMeshNormal, 1e-3, dilateSize, meshOut);
+          meshOut.save(filename);
+        }
 
         corefFinalMeshes.addMesh(meshOut);
 

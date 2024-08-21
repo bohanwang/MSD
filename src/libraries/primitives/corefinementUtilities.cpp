@@ -1488,7 +1488,10 @@ bool MedialAxisRepresentation::smoothVertices(Poly &finalMesh, std::vector<int> 
       h1 = h1->next()->opposite();
     } while (h1 != h);
 
-    PGO_ALOG(found == true);
+    if (found == false) {
+      continue;
+    }
+
     h1 = h1->next()->opposite();
 
     found = false;
