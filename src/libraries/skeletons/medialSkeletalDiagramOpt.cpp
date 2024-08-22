@@ -501,8 +501,8 @@ double funcMinimizeCoverage(unsigned n, const double *x, double *grad, void *my_
     primitiveICPParams.sphereRadius = centerRadii(0);
     primitiveICPParams.useCorefine = false;
     primitiveICPParams.verbose = false;
-    primitiveICPParams.maxPDNumIter = 10;
-    primitiveICPParams.maxNumIter = maxIter / 2;
+    primitiveICPParams.maxPDNumIter = 15;
+    primitiveICPParams.maxNumIter = 15;
     primitiveICPParams.smoothnessCoeff = sc;
     primitiveICPParams.expansionCoeff = 2;
     primitiveICPParams.contactCoeff = 1e4;
