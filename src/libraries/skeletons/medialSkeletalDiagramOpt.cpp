@@ -1565,7 +1565,7 @@ void MedialAxisRepresentation::solveSkeleton(
 
   for (int giter = 0; giter < nIt; giter++) {
     data->computeUnmaskedRegion = 0;
-    nlopt_opt opt = nlopt_create(NLOPT_LN_BOBYQA, (int)x.size());
+    nlopt_opt opt = nlopt_create(NLOPT_LN_NELDERMEAD, (int)x.size());
     nlopt_set_lower_bounds(opt, xlow.data());
     nlopt_set_upper_bounds(opt, xhi.data());
     nlopt_set_min_objective(opt, funcMinimizeCoverage, data);
