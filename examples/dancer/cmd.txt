@@ -1,1 +1,1 @@
-C:\code\libpgo-clean\libpgo-private\build\bin\Release\computeMSD.exe -i .\input.obj -a .\input-ma.json -n 10 -e 1 -N 1 -f -r 
+../../../../build/bin/computeMSD -i input.obj -a input-ma.json -n 10 -e 1 -N 1 -f -r 
