@@ -174,9 +174,11 @@ int main(int argc, char *argv[])
     doCoref = 0;
   }
 
-  primitiveFitting(inputMesh, inputMeshBVTree, inputMeshNormal,
-    skeletonVtx, skeletonEdges, skeletonTriangles,
-    vidMap, edgeMap, triMap, doCoref);
+  if (doFitting) {
+    primitiveFitting(inputMesh, inputMeshBVTree, inputMeshNormal,
+        skeletonVtx, skeletonEdges, skeletonTriangles,
+        vidMap, edgeMap, triMap, doCoref);
+  }
 
   return 0;
 }
