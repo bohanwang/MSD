@@ -1,6 +1,6 @@
-# Medial Skeletal Diagram: A Generalized Medial Axis Approach for Compact 3D Shape Representation
+# Medial Skeletal Diagram: A Generalized Medial Axis Approach for 3D Shape Representation
 
-This repository contains the implementation code for our conditionally accepted SIGGRAPH Asia paper Medial Skeletal Diagram: A Generalized Medial Axis Approach for 3D Shape Representation.
+This repository contains the implementation code for our conditionally accepted SIGGRAPH Asia paper **Medial Skeletal Diagram: A Generalized Medial Axis Approach for 3D Shape Representation.**
 
 ![overview](assets/teaser.png)
 **We introduce the Medial Skeletal Diagram (MSD) -- a representation with a sparse skeleton that generalizes the medial axis.** Our representation reduces the number of discrete elements ($N_d$) required compared to both standard and simplified medial axes ((b) and (d)). This reduction is achieved while delivering the highest reconstruction accuracy (c). The sparsity of discrete elements and the completeness of our method facilitate a broad range of applications, such as shape generation, mesh decomposition, and shape optimization (e).
